@@ -865,3 +865,48 @@
 [5073.20005] Using model CCOM to predict NGDC
 [5105.05879] finished prediction
 [5111.17871] eval, ./NGDC_libsvm/testing.libsvm, 21, 14.684518756541662, 0.058395003924964446, 0.5630449331288304
+[0.00316] Using model all to predict GEOMAR
+[5.74647] finished prediction
+[6.59618] eval, ./data/GEOMAR_libsvm/testing.libsvm, 400, 0.03234520291089748, 0.24532381674768372, 0.8993009132968668
+[6.61225] Using model all to predict SIO
+[22.62663] finished prediction
+[25.59030] eval, ./data/SIO_libsvm/testing.libsvm, 400, 0.17722755616113936, 0.9561798099245638, 0.9894029140688324
+[25.63027] Using model all to predict NOAA
+[40.24416] finished prediction
+[43.02386] eval, ./data/NOAA_geodas_libsvm/testing.libsvm, 400, 0.3023307152136659, 0.8431643513908832, 0.950956247996137
+[43.06184] Using model all to predict DGBR
+[45.05076] finished prediction
+[45.32181] eval, ./data/3DGBR_libsvm/testing.libsvm, 400, 0.19929826698914846, 0.9488785583329786, 0.9833167477689382
+[45.32750] Using model all to predict GEBCO
+[48.01762] finished prediction
+[48.40564] eval, ./data/GEBCO_libsvm/testing.libsvm, 400, 0.01927164076602984, 0.7448694246459971, 0.9942728990948781
+[48.41308] Using model all to predict US
+[65.08171] finished prediction
+[68.44056] eval, ./data/US_multi_libsvm/testing.libsvm, 400, 0.14739894762671651, 0.889304222976896, 0.9837807454197858
+[68.48543] Using model all to predict NOAA
+[70.65844] finished prediction
+[70.95672] eval, ./data/NOAA_libsvm/testing.libsvm, 400, 0.0742827312122918, 0.3883313734530182, 0.953268049919538
+[70.96271] Using model all to predict IBCAO
+[76.25729] finished prediction
+[77.06693] eval, ./data/IBCAO_libsvm/testing.libsvm, 400, 0.012861680713581842, 0.5625661256369491, 0.979703728547391
+[77.08317] Using model all to predict IFREMER
+[79.85624] finished prediction
+[80.24561] eval, ./data/IFREMER_libsvm/testing.libsvm, 400, 0.21477840923802782, 0.8944571309213251, 0.9772309560231615
+[80.25514] Using model all to predict NGA
+[82.00467] finished prediction
+[82.21897] eval, ./data/NGA_libsvm/testing.libsvm, 400, 0.26256564292403634, 0.9312695895885177, 0.977142997030233
+[82.22402] Using model all to predict NGA
+[88.07666] finished prediction
+[88.99434] eval, ./data/NGA2_libsvm/testing.libsvm, 400, 0.013682899134028457, 0.28768328500990475, 0.9934830924551803
+[89.01172] Using model all to predict AGSO
+[94.33321] finished prediction
+[95.20499] eval, ./data/AGSO_libsvm/testing.libsvm, 400, 0.14221752429551524, 0.5781056091107417, 0.9597151344130758
+[95.22143] Using model all to predict lakes
+[96.92977] finished prediction
+[97.13172] eval, ./data/lakes_libsvm/testing.libsvm, 400, 0.00028421200758308785, nan, nan
+[97.13568] Using model all to predict CCOM
+[100.50857] finished prediction
+[100.98551] eval, ./data/CCOM_libsvm/testing.libsvm, 400, 0.018023156900603052, 0.5789950061045703, 0.9859031852892479
+[100.99839] Using model all to predict NAVO
+[101.16941] finished prediction
+[101.18474] eval, ./data/NAVO_libsvm/testing.libsvm, 400, 0.03063038727483407, 0.09684735075242196, 0.9227035580703942
