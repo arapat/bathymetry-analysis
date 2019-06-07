@@ -11,6 +11,7 @@ import yaml
 import lightgbm as lgb
 import multiprocessing
 import numpy as np
+from time import time
 from sklearn.metrics import auc
 from sklearn.metrics import precision_recall_curve
 from sklearn.metrics import roc_curve
@@ -79,6 +80,7 @@ def train_lgb(train_data, valid_data, scale_pos_weight, num_leaves, rounds, earl
         'max_bin': max_bin,
         'bagging_fraction': 0.5,
         'bagging_freq': rounds,
+        'bagging_seed': int(time()),
     }
 
     logger('Start training...')
@@ -92,11 +94,11 @@ def train_lgb(train_data, valid_data, scale_pos_weight, num_leaves, rounds, earl
     return gbm
 
 
-def persist_model(base_dir, gbm):
+def persist_model(base_dir, gbm, version):
     if not os.path.exists(base_dir):
         os.mkdir(base_dir)
-    txt_model = os.path.join(base_dir, 'model.txt')
-    pkl_model = os.path.join(base_dir, 'model.pkl')
+    txt_model = os.path.join(base_dir, 'model_{}.txt'.format(version))
+    pkl_model = os.path.join(base_dir, 'model_{}.pkl'.format(version))
     gbm.save_model(txt_model)
     with open(pkl_model, 'wb') as fout:
         pickle.dump(gbm, fout)
@@ -202,21 +204,22 @@ def construct_data(rtrain, max_bin):
 def main(config):
     datasets = get_datasets()
     for dataset in datasets:
-        logger("start, {}".format(dataset[0]))
-        root, rtrain, rtest = dataset
-        (train, valid), scale_pos_weight = construct_data(rtrain, config["max_bin"])
-        model = train_lgb(
-            train,
-            valid,
-            scale_pos_weight,
-            config["num_leaves"],
-            config["rounds"],
-            config["early_stopping_rounds"],
-            config["max_bin"],
-        )
-        (_, pkl_model_path) = persist_model(root, model)
-        run_test(rtest, pkl_model_path, config["max_bin"])
-        logger("finish, {}".format(root))
+        for ver in range(10):
+            logger("start, {}, {}".format(dataset[0], ver + 1))
+            root, rtrain, rtest = dataset
+            (train, valid), scale_pos_weight = construct_data(rtrain, config["max_bin"])
+            model = train_lgb(
+                train,
+                valid,
+                scale_pos_weight,
+                config["num_leaves"],
+                config["rounds"],
+                config["early_stopping_rounds"],
+                config["max_bin"],
+            )
+            (_, pkl_model_path) = persist_model(root, model, ver + 1)
+            run_test(rtest, pkl_model_path, config["max_bin"])
+            logger("finish, {}".format(root))
 
 
 # In[ ]:
