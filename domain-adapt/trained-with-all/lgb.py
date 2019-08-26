@@ -129,7 +129,7 @@ def run_test(features_test, labels_test, pkl_model_path):
     fpr, tpr, _ = roc_curve(true, scores, pos_label=1)
     auroc = auc(fpr, tpr)
     # accuracy
-    acc = np.sum(true == (scores > 0)) / true.shape[0]
+    acc = np.sum((true > 0) == (scores > 0)) / true.shape[0]
 
     with open("testing_result.pkl", 'wb') as fout:
         pickle.dump((true, scores), fout)
@@ -194,9 +194,8 @@ def get_datasets(filepaths, get_label=lambda cols: cols[4] == '9999'):
                     [float(cols[i]) for i in range(len(cols)) if i not in removed_features]
                 ))
         features_list.append(np.array(features))
-        # TODO: remove this line
-        if len(features_list) > 10:
-            break
+        # if len(features_list) > 200:
+        #     break
     return (features_list, np.array(labels))
 
 
