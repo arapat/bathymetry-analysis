@@ -7,7 +7,6 @@
 import os
 import sys
 import pickle
-import yaml
 import lightgbm as lgb
 import multiprocessing
 import numpy as np
@@ -108,16 +107,18 @@ def persist_model(base_dir, gbm):
 # In[ ]:
 
 
-def run_test(testing_data, pkl_model_path):
-    # get true labels
-    true = (testing_data.get_label() > 0) * 2 - 1
+def run_test(features_test, labels_test, pkl_model_path):
+    # format raw testing input
+    features = np.concatenate(features_test, axis=0)
+    true = np.array(labels_test)
+    true = (true > 0) * 2 - 1
 
     # load model with pickle to predict
     with open(pkl_model_path, 'rb') as fin:
         model = pickle.load(fin)
 
     # Prediction
-    preds = model.predict(testing_data)
+    preds = model.predict(features)
     logger('finished prediction')
 
     # compute auprc
@@ -127,11 +128,13 @@ def run_test(testing_data, pkl_model_path):
     auprc = auc(recall, precision)
     fpr, tpr, _ = roc_curve(true, scores, pos_label=1)
     auroc = auc(fpr, tpr)
+    # accuracy
+    acc = np.sum(true == ((scores * 2 - 1) > 0)) / true.shape[0]
 
     with open("testing_result.pkl", 'wb') as fout:
         pickle.dump((true, scores), fout)
 
-    logger("eval, {}, {}, {}, {}".format(model.num_trees(), loss, auprc, auroc))
+    logger("eval, {}, {}, {}, {}, {}".format(model.num_trees(), loss, auprc, auroc, acc))
 
 
 # In[ ]:
@@ -162,7 +165,7 @@ def construct_data(features, labels, max_bin):
     validating = all_train.subset(list(range(thr, size)))
     # scale pos weight
     labels = all_train.get_label()
-    positive = labels.sum()
+    positive = np.array(labels).sum()
     negative = size - positive
     scale_pos_weight = 1.0 * negative / positive
     return ((training, validating), scale_pos_weight)
@@ -194,10 +197,11 @@ def get_datasets(filepaths, get_label=lambda cols: cols[4] == '9999'):
         # TODO: remove this line
         if len(features_list) > 10:
             break
-    return (features_list, labels)
+    return (features_list, np.array(labels))
 
 
 def main(config):
+    base_dir = config["base_dir"]
     with open(config["training_files"]) as f:
         training_files = f.readlines()
 
@@ -216,16 +220,16 @@ def main(config):
         config["max_bin"],
     )
     logger("finished training")
-    (_, pkl_model_path) = persist_model("./", model)
+    (_, pkl_model_path) = persist_model(base_dir, model)
     logger("model is persisted at {}".format(pkl_model_path))
 
     logger("start testing")
     with open(config["testing_files"]) as f:
         testing_files = f.readlines()
     (features_test, labels_test) = get_datasets(testing_files)
-    test_dataset = lgb.Dataset(features_test, label=labels_test, params={'max_bin': max_bin})
     logger("finished loading testing data")
-    run_test(test_dataset, pkl_model_path)
+    pkl_model_path = os.path.join(base_dir, 'model.pkl')
+    run_test(features_test, labels_test, pkl_model_path)
     logger("finished testing")
 
 
@@ -236,6 +240,7 @@ DATA_BASE_DIR = "/geosat2/julaiti/tsv_all"
 TRAINING_FILES_DESC = os.path.join(DATA_BASE_DIR, "training_files_desc.txt")
 TESTING_FILES_DESC = os.path.join(DATA_BASE_DIR, "testing_files_desc.txt")
 config = {
+    "base_dir": "./",
     "training_files": TRAINING_FILES_DESC,
     "testing_files": TESTING_FILES_DESC,
     "num_leaves": 31,

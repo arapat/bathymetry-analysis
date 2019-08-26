@@ -1,4 +1,8 @@
 .ipynb_checkpoints
 .vscode
+*.txt
 
 archive/
+
+log_file.txt
+*.pkl
