@@ -123,13 +123,13 @@ def run_test(features_test, labels_test, pkl_model_path):
 
     # compute auprc
     scores = preds
-    loss = np.mean(np.exp(-true * (scores * 2 - 1)))
+    loss = np.mean(np.exp(-true * scores))
     precision, recall, _ = precision_recall_curve(true, scores, pos_label=1)
     auprc = auc(recall, precision)
     fpr, tpr, _ = roc_curve(true, scores, pos_label=1)
     auroc = auc(fpr, tpr)
     # accuracy
-    acc = np.sum(true == ((scores * 2 - 1) > 0)) / true.shape[0]
+    acc = np.sum(true == (scores > 0)) / true.shape[0]
 
     with open("testing_result.pkl", 'wb') as fout:
         pickle.dump((true, scores), fout)
