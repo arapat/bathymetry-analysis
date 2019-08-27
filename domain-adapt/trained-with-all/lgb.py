@@ -25,14 +25,6 @@ DATA_TYPE = {
 }
 
 
-# for performance
-if os.path.exists("./log_file.txt"):
-    print("Log file exists. Quit.")
-    sys.exit(1)
-flog = open("./log_file.txt", 'w')
-t0 = time()
-
-
 def logger(s, show_time=False):
     if show_time:
         msg = "Current time: %.2f" % time()
@@ -72,8 +64,8 @@ def train_lgb(train_data, valid_data, scale_pos_weight, num_leaves, rounds, earl
         'objective': 'binary',
         'boosting_type': 'gbdt',  # 'goss',
         'num_leaves': num_leaves,
-        'learning_rate': 0.3,
-        'tree_learner': 'voting',
+        'learning_rate': 0.1,
+        'tree_learner': 'serial',
         'task': 'train',
         'num_thread': multiprocessing.cpu_count(),
         'min_data_in_leaf': 5000,  # This is min bound for stopping rule in Sparrow
@@ -86,7 +78,7 @@ def train_lgb(train_data, valid_data, scale_pos_weight, num_leaves, rounds, earl
     gbm = lgb.train(
         params, train_data, num_boost_round=rounds,
         early_stopping_rounds=early_stopping_rounds,
-        fobj=expobj, feval=exp_eval,
+        # fobj=expobj, feval=exp_eval,
         valid_sets=[valid_data], callbacks=[print_ts()],
     )
     logger('Training completed.')
@@ -110,8 +102,7 @@ def persist_model(base_dir, gbm):
 def run_test(features_test, labels_test, pkl_model_path):
     # format raw testing input
     features = np.concatenate(features_test, axis=0)
-    true = np.array(labels_test)
-    true = (true > 0) * 2 - 1
+    true = labels_test * 1
 
     # load model with pickle to predict
     with open(pkl_model_path, 'rb') as fin:
@@ -119,39 +110,22 @@ def run_test(features_test, labels_test, pkl_model_path):
 
     # Prediction
     preds = model.predict(features)
+    scores = np.clip(preds, 1e-15, 1.0 - 1e-15)
     logger('finished prediction')
 
     # compute auprc
-    scores = preds
-    loss = np.mean(np.exp(-true * scores))
+    loss = np.mean(true * -np.log(scores) + (1 - true) * -np.log(1.0 - scores))
     precision, recall, _ = precision_recall_curve(true, scores, pos_label=1)
     auprc = auc(recall, precision)
     fpr, tpr, _ = roc_curve(true, scores, pos_label=1)
     auroc = auc(fpr, tpr)
     # accuracy
-    acc = np.sum((true > 0) == (scores > 0)) / true.shape[0]
+    acc = np.sum(true == (scores > 0.5)) / true.shape[0]
 
     with open("testing_result.pkl", 'wb') as fout:
         pickle.dump((true, scores), fout)
 
     logger("eval, {}, {}, {}, {}, {}".format(model.num_trees(), loss, auprc, auroc, acc))
-
-
-# In[ ]:
-
-
-def expobj(preds, dtrain):
-    labels = ((dtrain.get_label() > 0) * 2 - 1).astype("float16")
-    hess = np.exp(-labels * preds)  # exp(-margin)
-    return -labels * hess, hess     # grad, hess
-
-
-# self-defined eval metric
-# f(preds: array, train_data: Dataset) -> name: string, eval_result: float, is_higher_better: bool
-# binary error
-def exp_eval(preds, data):
-    labels = ((data.get_label() > 0) * 2 - 1).astype("float16")
-    return 'potential', np.mean(np.exp(-labels * preds)), False
 
 
 # In[11]:
@@ -203,16 +177,26 @@ def get_datasets(filepaths, limit=None, get_label=lambda cols: cols[4] == '9999'
             logger("failed to load " + filename)
         if limit is not None and len(features_list) > limit:
             break
-    return (features_list, np.array(all_labels))
+    all_labels = np.array(all_labels)
+    if np.any(all_labels < 0):
+        all_labels = (all_labels > 0) * 1
+    return (features_list, all_labels)
 
 
-def main(config):
+def main_train(config, read_text):
     base_dir = config["base_dir"]
     with open(config["training_files"]) as f:
         training_files = f.readlines()
 
     logger("start constructing datasets")
-    (features_train, labels_train) = get_datasets(training_files, limit=3000)
+    if read_text:
+        (features_train, labels_train) = get_datasets(training_files, limit=3000)
+        with open("training-data.pkl", 'wb') as fout:
+            pickle.dump((features_train, labels_train), fout)
+    else:
+        with open("training-data.pkl", 'rb') as fin:
+            (features_train, labels_train) = pickle.load(fin)
+
     (train, valid), scale_pos_weight = construct_data(
         features_train, labels_train, config["max_bin"])
     logger("start training")
@@ -229,10 +213,22 @@ def main(config):
     (_, pkl_model_path) = persist_model(base_dir, model)
     logger("model is persisted at {}".format(pkl_model_path))
 
+
+def main_test(config, read_text):
+    base_dir = config["base_dir"]
     logger("start testing")
     with open(config["testing_files"]) as f:
         testing_files = f.readlines()
-    (features_test, labels_test) = get_datasets(testing_files)
+
+    logger("start constructing datasets")
+    if read_text:
+        (features_test, labels_test) = get_datasets(testing_files, limit=3000)
+        with open("testing-data.pkl", 'wb') as fout:
+            pickle.dump((features_test, labels_test), fout)
+    else:
+        with open("testing-data.pkl", 'rb') as fin:
+            (features_test, labels_test) = pickle.load(fin)
+
     logger("finished loading testing data")
     pkl_model_path = os.path.join(base_dir, 'model.pkl')
     run_test(features_test, labels_test, pkl_model_path)
@@ -257,6 +253,43 @@ config = {
 
 
 if __name__ == '__main__':
-    main(config)
+    t0 = time()
+    if len(sys.argv) != 3:
+        print("Usage: ./lgb.py <train|test|both> <text|bin>")
+    is_ok = False
+    if sys.argv[1].lower() in ["both", "train"]:
+        if os.path.exists("./train_log_file.txt"):
+            print("Train log file exists. Quit.")
+            sys.exit(1)
+        flog = open("./train_log_file.txt", 'w')
+        main_train(config, sys.argv[2].lower() == "text")
+        is_ok = True
+    if sys.argv[1].lower() in ["both", "test"]:
+        if os.path.exists("./test_log_file.txt"):
+            print("Test log file exists. Quit.")
+            sys.exit(1)
+        flog = open("./test_log_file.txt", 'w')
+        main_test(config, sys.argv[2].lower() == "text")
+        is_ok = True
+    if not is_ok:
+        print("Cannot understand the parameters.\nUsage: ./lgb.py <train|test|both> <text|bin>")
     flog.close()
+
+
+
+# AdaBoost potential function
+"""
+def expobj(preds, dtrain):
+    labels = ((dtrain.get_label() > 0) * 2 - 1).astype("float16")
+    hess = np.exp(-labels * preds)  # exp(-margin)
+    return -labels * hess, hess     # grad, hess
+
+
+# self-defined eval metric
+# f(preds: array, train_data: Dataset) -> name: string, eval_result: float, is_higher_better: bool
+# binary error
+def exp_eval(preds, data):
+    labels = ((data.get_label() > 0) * 2 - 1).astype("float16")
+    return 'potential', np.mean(np.exp(-labels * preds)), False
+"""
 
