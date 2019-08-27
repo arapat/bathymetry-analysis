@@ -174,29 +174,36 @@ def construct_data(features, labels, max_bin):
 # In[ ]:
 
 
-def get_datasets(filepaths, get_label=lambda cols: cols[4] == '9999'):
+def get_datasets(filepaths, limit=None, get_label=lambda cols: cols[4] == '9999'):
     removed_features = [0, 1, 3, 4, 5, 7]
     features_list = []
-    labels = []
+    all_labels = []
     for filename in filepaths:
-        filename = filename.strip()
-        if not filename:
-            continue
-        features = []
-        with open(filename) as fread:
-            for line in fread:
-                cols = line.strip().split()
-                if not cols:
-                    continue
-                cols[29] = DATA_TYPE[cols[29]]
-                labels.append(get_label(cols))
-                features.append(np.array(
-                    [float(cols[i]) for i in range(len(cols)) if i not in removed_features]
-                ))
-        features_list.append(np.array(features))
-        # if len(features_list) > 200:
-        #     break
-    return (features_list, np.array(labels))
+        try:
+            filename = filename.strip()
+            if not filename:
+                continue
+            features = []
+            labels = []
+            with open(filename) as fread:
+                for line in fread:
+                    cols = line.strip().split()
+                    if not cols:
+                        continue
+                    cols[29] = DATA_TYPE[cols[29]]
+                    labels.append(get_label(cols))
+                    features.append(np.array(
+                        [float(cols[i]) for i in range(len(cols)) if i not in removed_features]
+                    ))
+            assert(len(features) == len(labels))
+            features_list.append(np.array(features))
+            all_labels += labels
+            logger("loaded " + filename)
+        except:
+            logger("failed to load " + filename)
+        if limit is not None and len(features_list) > limit:
+            break
+    return (features_list, np.array(all_labels))
 
 
 def main(config):
@@ -205,7 +212,7 @@ def main(config):
         training_files = f.readlines()
 
     logger("start constructing datasets")
-    (features_train, labels_train) = get_datasets(training_files)
+    (features_train, labels_train) = get_datasets(training_files, limit=3000)
     (train, valid), scale_pos_weight = construct_data(
         features_train, labels_train, config["max_bin"])
     logger("start training")
