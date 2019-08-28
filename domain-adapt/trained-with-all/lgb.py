@@ -148,54 +148,79 @@ def construct_data(features, labels, max_bin):
 # In[ ]:
 
 
-def get_datasets(filepaths, limit=None, get_label=lambda cols: cols[4] == '9999'):
+def get_datasets(filepaths, is_read_text, limit=None, get_label=lambda cols: cols[4] == '9999'):
+    def read_bin(filename):
+        with open(filename, 'rb') as f:
+            return pickle.load(f)
+
+    def write_bin(features, labels, filename):
+        with open(filename, 'wb') as f:
+            pickle.dump((features, labels), f)
+
+    def read_text(filename):
+        features = []
+        labels = []
+        with open(filename) as fread:
+            for line in fread:
+                cols = line.strip().split()
+                if not cols:
+                    continue
+                cols[29] = DATA_TYPE[cols[29]]
+                labels.append(get_label(cols))
+                features.append(np.array(
+                    [float(cols[i]) for i in range(len(cols)) if i not in removed_features]
+                ))
+        assert(len(features) == len(labels))
+        return (np.array(features), labels)
+
+    interval = 100
+
+    filepaths = [filename.strip() for filename in filepaths if filename.strip()]
     removed_features = [0, 1, 3, 4, 5, 7]
     features_list = []
     all_labels = []
-    for filename in filepaths:
+    last_pos_features = 0
+    last_pos_labels = 0
+    for count, filename in enumerate(filepaths):
+        bin_filename = os.path.basename(filename) + ".pkl.data"
+        if not is_read_text and not os.path.exists(bin_filename):
+            continue
         try:
-            filename = filename.strip()
-            if not filename:
-                continue
-            features = []
-            labels = []
-            with open(filename) as fread:
-                for line in fread:
-                    cols = line.strip().split()
-                    if not cols:
-                        continue
-                    cols[29] = DATA_TYPE[cols[29]]
-                    labels.append(get_label(cols))
-                    features.append(np.array(
-                        [float(cols[i]) for i in range(len(cols)) if i not in removed_features]
-                    ))
-            assert(len(features) == len(labels))
-            features_list.append(np.array(features))
-            all_labels += labels
-            logger("loaded " + filename)
+            if is_read_text:
+                features, labels = read_text(filename)
+                features_list.append(features)
+                all_labels += labels
+            else:
+                features, labels = read_bin(bin_filename)
+                features_list += features
+                all_labels    += labels
+            logger("loaded " + filename + ", length: " + str(len(features_list)))
         except:
             logger("failed to load " + filename)
+        if is_read_text and (count + 1) % interval == 0 and last_pos_features < len(features_list):
+            write_bin(features_list[last_pos_features:], all_labels[last_pos_labels:], bin_filename)
+            last_pos_features = len(features_list)
+            last_pos_labels = len(all_labels)
         if limit is not None and len(features_list) > limit:
             break
+    # Handle last batch
+    if is_read_text and last_pos_features < len(features_list):
+        write_bin(features_list[last_pos_features:], all_labels[last_pos_labels:], bin_filename)
+    # Format labels
     all_labels = np.array(all_labels)
     if np.any(all_labels < 0):
         all_labels = (all_labels > 0) * 1
+    print(sum(len(t) for t in features_list), len(features_list), len(all_labels))
     return (features_list, all_labels)
 
 
-def main_train(config, read_text):
+def main_train(config, is_read_text):
     base_dir = config["base_dir"]
     with open(config["training_files"]) as f:
         training_files = f.readlines()
 
     logger("start constructing datasets")
-    if read_text:
-        (features_train, labels_train) = get_datasets(training_files, limit=3000)
-        with open("training-data.pkl", 'wb') as fout:
-            pickle.dump((features_train, labels_train), fout)
-    else:
-        with open("training-data.pkl", 'rb') as fin:
-            (features_train, labels_train) = pickle.load(fin)
+    (features_train, labels_train) = get_datasets(training_files, is_read_text, limit=10)
 
     (train, valid), scale_pos_weight = construct_data(
         features_train, labels_train, config["max_bin"])
@@ -214,20 +239,14 @@ def main_train(config, read_text):
     logger("model is persisted at {}".format(pkl_model_path))
 
 
-def main_test(config, read_text):
+def main_test(config, is_read_text):
     base_dir = config["base_dir"]
     logger("start testing")
     with open(config["testing_files"]) as f:
         testing_files = f.readlines()
 
     logger("start constructing datasets")
-    if read_text:
-        (features_test, labels_test) = get_datasets(testing_files, limit=3000)
-        with open("testing-data.pkl", 'wb') as fout:
-            pickle.dump((features_test, labels_test), fout)
-    else:
-        with open("testing-data.pkl", 'rb') as fin:
-            (features_test, labels_test) = pickle.load(fin)
+    (features_test, labels_test) = get_datasets(testing_files, is_read_text, limit=10)
 
     logger("finished loading testing data")
     pkl_model_path = os.path.join(base_dir, 'model.pkl')
@@ -256,6 +275,7 @@ if __name__ == '__main__':
     t0 = time()
     if len(sys.argv) != 3:
         print("Usage: ./lgb.py <train|test|both> <text|bin>")
+        sys.exit(1)
     is_ok = False
     if sys.argv[1].lower() in ["both", "train"]:
         if os.path.exists("./train_log_file.txt"):
