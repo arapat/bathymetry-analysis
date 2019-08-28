@@ -155,7 +155,7 @@ def get_datasets(filepaths, is_read_text, limit=None, get_label=lambda cols: col
 
     def write_bin(features, labels, filename):
         with open(filename, 'wb') as f:
-            pickle.dump((features, labels), f)
+            pickle.dump((features, labels), f, protocol=4)
 
     def read_text(filename):
         features = []
@@ -173,7 +173,7 @@ def get_datasets(filepaths, is_read_text, limit=None, get_label=lambda cols: col
         assert(len(features) == len(labels))
         return (np.array(features), labels)
 
-    interval = 100
+    interval = 20
 
     filepaths = [filename.strip() for filename in filepaths if filename.strip()]
     removed_features = [0, 1, 3, 4, 5, 7]
@@ -198,6 +198,8 @@ def get_datasets(filepaths, is_read_text, limit=None, get_label=lambda cols: col
         except:
             logger("failed to load " + filename)
         if is_read_text and (count + 1) % interval == 0 and last_pos_features < len(features_list):
+            logger("To write {} arrays, {} examples".format(
+                len(features_list) - last_pos_features, len(all_labels) - last_pos_labels))
             write_bin(features_list[last_pos_features:], all_labels[last_pos_labels:], bin_filename)
             last_pos_features = len(features_list)
             last_pos_labels = len(all_labels)
@@ -220,7 +222,7 @@ def main_train(config, is_read_text):
         training_files = f.readlines()
 
     logger("start constructing datasets")
-    (features_train, labels_train) = get_datasets(training_files, is_read_text, limit=10)
+    (features_train, labels_train) = get_datasets(training_files, is_read_text, limit=3000)
 
     (train, valid), scale_pos_weight = construct_data(
         features_train, labels_train, config["max_bin"])
@@ -246,7 +248,7 @@ def main_test(config, is_read_text):
         testing_files = f.readlines()
 
     logger("start constructing datasets")
-    (features_test, labels_test) = get_datasets(testing_files, is_read_text, limit=10)
+    (features_test, labels_test) = get_datasets(testing_files, is_read_text, limit=3000)
 
     logger("finished loading testing data")
     pkl_model_path = os.path.join(base_dir, 'model.pkl')

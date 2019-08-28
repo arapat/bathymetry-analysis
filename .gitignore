@@ -5,4 +5,5 @@
 archive/
 
 log_file.txt
+*.data
 *.pkl
