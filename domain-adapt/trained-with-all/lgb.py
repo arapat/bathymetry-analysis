@@ -59,7 +59,7 @@ def print_ts(period=1):
 
 
 # In[ ]:
-def train_lgb(train_data, valid_data, scale_pos_weight, num_leaves, rounds, early_stopping_rounds, max_bin):
+def train_lgb(train_data, valid_data, num_leaves, rounds, early_stopping_rounds, max_bin):
     params = {
         'objective': 'binary',
         'boosting_type': 'gbdt',  # 'goss',
@@ -70,7 +70,7 @@ def train_lgb(train_data, valid_data, scale_pos_weight, num_leaves, rounds, earl
         'num_thread': multiprocessing.cpu_count(),
         'min_data_in_leaf': 5000,  # This is min bound for stopping rule in Sparrow
         'two_round': True,
-        'scale_pos_weight': scale_pos_weight,
+        'is_unbalance': True,
         'max_bin': max_bin,
     }
 
@@ -79,7 +79,7 @@ def train_lgb(train_data, valid_data, scale_pos_weight, num_leaves, rounds, earl
         params, train_data, num_boost_round=rounds,
         early_stopping_rounds=early_stopping_rounds,
         # fobj=expobj, feval=exp_eval,
-        valid_sets=[valid_data], callbacks=[print_ts()],
+        valid_sets=[train_data, valid_data], callbacks=[print_ts()],
     )
     logger('Training completed.')
     return gbm
@@ -128,27 +128,7 @@ def run_test(features_test, labels_test, pkl_model_path):
     logger("eval, {}, {}, {}, {}, {}".format(model.num_trees(), loss, auprc, auroc, acc))
 
 
-# In[11]:
-def construct_data(features, labels, max_bin):
-    all_train = lgb.Dataset(features, label=labels, params={'max_bin': max_bin})
-    all_train.construct()
-    size = all_train.num_data()
-    # Split training and validating
-    thr = int(size * 0.1)
-    training = all_train.subset(list(range(0, thr)))
-    validating = all_train.subset(list(range(thr, size)))
-    # scale pos weight
-    labels = all_train.get_label()
-    positive = np.array(labels).sum()
-    negative = size - positive
-    scale_pos_weight = 1.0 * negative / positive
-    return ((training, validating), scale_pos_weight)
-
-
-# In[ ]:
-
-
-def get_datasets(filepaths, is_read_text, limit=None, get_label=lambda cols: cols[4] == '9999'):
+def get_datasets(filepaths, is_read_text, limit=None, prefix="", get_label=lambda cols: cols[4] == '9999'):
     def read_bin(filename):
         with open(filename, 'rb') as f:
             return pickle.load(f)
@@ -174,6 +154,8 @@ def get_datasets(filepaths, is_read_text, limit=None, get_label=lambda cols: col
         return (np.array(features), labels)
 
     interval = 20
+    if prefix:
+        prefix = prefix + "_"
 
     filepaths = [filename.strip() for filename in filepaths if filename.strip()]
     removed_features = [0, 1, 3, 4, 5, 7]
@@ -182,7 +164,7 @@ def get_datasets(filepaths, is_read_text, limit=None, get_label=lambda cols: col
     last_pos_features = 0
     last_pos_labels = 0
     for count, filename in enumerate(filepaths):
-        bin_filename = os.path.basename(filename) + ".pkl.data"
+        bin_filename = prefix + os.path.basename(filename) + ".pkl.data"
         if not is_read_text and not os.path.exists(bin_filename):
             continue
         try:
@@ -220,17 +202,20 @@ def main_train(config, is_read_text):
     base_dir = config["base_dir"]
     with open(config["training_files"]) as f:
         training_files = f.readlines()
+    with open(config["validation_files"]) as f:
+        valid_files = f.readlines()
 
     logger("start constructing datasets")
-    (features_train, labels_train) = get_datasets(training_files, is_read_text, limit=3000)
-
-    (train, valid), scale_pos_weight = construct_data(
-        features_train, labels_train, config["max_bin"])
+    (features_train, labels_train) = get_datasets(training_files, is_read_text, prefix="train", limit=3000)
+    train = lgb.Dataset(features_train, label=labels_train, params={'max_bin': config["max_bin"]})
+    train.construct()
+    (features_valid, labels_valid) = get_datasets(valid_files, is_read_text, prefix="valid", limit=3000)
+    valid = lgb.Dataset(features_valid, label=labels_valid, params={'max_bin': config["max_bin"]})
+    valid.construct()
     logger("start training")
     model = train_lgb(
         train,
         valid,
-        scale_pos_weight,
         config["num_leaves"],
         config["rounds"],
         config["early_stopping_rounds"],
@@ -248,7 +233,7 @@ def main_test(config, is_read_text):
         testing_files = f.readlines()
 
     logger("start constructing datasets")
-    (features_test, labels_test) = get_datasets(testing_files, is_read_text, limit=3000)
+    (features_test, labels_test) = get_datasets(testing_files, is_read_text, prefix="test", limit=3000)
 
     logger("finished loading testing data")
     pkl_model_path = os.path.join(base_dir, 'model.pkl')
@@ -261,15 +246,17 @@ def main_test(config, is_read_text):
 
 DATA_BASE_DIR = "/geosat2/julaiti/tsv_all"
 TRAINING_FILES_DESC = os.path.join(DATA_BASE_DIR, "training_files_desc.txt")
+VALIDATION_FILES_DESC = os.path.join(DATA_BASE_DIR, "validation_files_desc.txt")
 TESTING_FILES_DESC = os.path.join(DATA_BASE_DIR, "testing_files_desc.txt")
 config = {
     "base_dir": "./",
     "training_files": TRAINING_FILES_DESC,
+    "validation_files": VALIDATION_FILES_DESC,
     "testing_files": TESTING_FILES_DESC,
     "num_leaves": 31,
-    "rounds": 400,
-    "max_bin": 63,
-    "early_stopping_rounds": 16,
+    "rounds": 1500,
+    "early_stopping_rounds": 1500,
+    "max_bin": 255,
 }
 
 
@@ -313,5 +300,21 @@ def expobj(preds, dtrain):
 def exp_eval(preds, data):
     labels = ((data.get_label() > 0) * 2 - 1).astype("float16")
     return 'potential', np.mean(np.exp(-labels * preds)), False
+
+
+def construct_data(features, labels, max_bin):
+    all_train = lgb.Dataset(features, label=labels, params={'max_bin': max_bin})
+    all_train.construct()
+    size = all_train.num_data()
+    # Split training and validating
+    thr = int(size * 0.1)
+    training = all_train.subset(list(range(0, thr)))
+    validating = all_train.subset(list(range(thr, size)))
+    # scale pos weight
+    labels = all_train.get_label()
+    positive = np.array(labels).sum()
+    negative = size - positive
+    scale_pos_weight = 1.0 * negative / positive
+    return ((training, validating), scale_pos_weight)
 """
 
