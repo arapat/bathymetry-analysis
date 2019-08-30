@@ -208,10 +208,8 @@ def main_train(config, is_read_text):
     logger("start constructing datasets")
     (features_train, labels_train) = get_datasets(training_files, is_read_text, prefix="train", limit=3000)
     train = lgb.Dataset(features_train, label=labels_train, params={'max_bin': config["max_bin"]})
-    train.construct()
     (features_valid, labels_valid) = get_datasets(valid_files, is_read_text, prefix="valid", limit=3000)
     valid = lgb.Dataset(features_valid, label=labels_valid, params={'max_bin': config["max_bin"]})
-    valid.construct()
     logger("start training")
     model = train_lgb(
         train,
