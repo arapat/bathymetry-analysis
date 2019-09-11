@@ -23,6 +23,7 @@ DATA_TYPE = {
     "S": 3,  # - single beam
     "P": 4,  # - point measurement
 }
+MAX_WEIGHT = 1.0 / 60000.0
 
 
 def logger(s, show_time=False):
@@ -133,9 +134,9 @@ def get_datasets(filepaths, is_read_text, limit=None, prefix="", get_label=lambd
         with open(filename, 'rb') as f:
             return pickle.load(f)
 
-    def write_bin(features, labels, filename):
+    def write_bin(features, labels, weights, filename):
         with open(filename, 'wb') as f:
-            pickle.dump((features, labels), f, protocol=4)
+            pickle.dump((features, labels, weights), f, protocol=4)
 
     def read_text(filename):
         features = []
@@ -151,7 +152,8 @@ def get_datasets(filepaths, is_read_text, limit=None, prefix="", get_label=lambd
                     [float(cols[i]) for i in range(len(cols)) if i not in removed_features]
                 ))
         assert(len(features) == len(labels))
-        return (np.array(features), labels)
+        weights = np.ones_like(labels) * max(MAX_WEIGHT, 1.0 / max(1.0, len(labels)))
+        return (np.array(features), labels, weights.tolist())
 
     interval = 20
     if prefix:
@@ -161,6 +163,7 @@ def get_datasets(filepaths, is_read_text, limit=None, prefix="", get_label=lambd
     removed_features = [0, 1, 3, 4, 5, 7]
     features_list = []
     all_labels = []
+    all_weights = []
     last_pos_features = 0
     last_pos_labels = 0
     for count, filename in enumerate(filepaths):
@@ -169,33 +172,36 @@ def get_datasets(filepaths, is_read_text, limit=None, prefix="", get_label=lambd
             continue
         try:
             if is_read_text:
-                features, labels = read_text(filename)
+                features, labels, weights = read_text(filename)
                 features_list.append(features)
-                all_labels += labels
+                all_labels  += labels
+                all_weights += weights
             else:
-                features, labels = read_bin(bin_filename)
+                features, labels, weights = read_bin(bin_filename)
                 features_list += features
                 all_labels    += labels
+                all_weights   += weights
             logger("loaded " + filename + ", length: " + str(len(features_list)))
-        except:
-            logger("failed to load " + filename)
+        except Exception as err:
+            logger("Failed to load " + filename + ". Error: {}".format(err))
         if is_read_text and (count + 1) % interval == 0 and last_pos_features < len(features_list):
             logger("To write {} arrays, {} examples".format(
                 len(features_list) - last_pos_features, len(all_labels) - last_pos_labels))
-            write_bin(features_list[last_pos_features:], all_labels[last_pos_labels:], bin_filename)
+            write_bin(features_list[last_pos_features:], all_labels[last_pos_labels:], all_weights[last_pos_labels:], bin_filename)
             last_pos_features = len(features_list)
             last_pos_labels = len(all_labels)
         if limit is not None and len(features_list) > limit:
             break
     # Handle last batch
     if is_read_text and last_pos_features < len(features_list):
-        write_bin(features_list[last_pos_features:], all_labels[last_pos_labels:], bin_filename)
-    # Format labels
+        write_bin(features_list[last_pos_features:], all_labels[last_pos_labels:], all_weights[last_pos_labels:], bin_filename)
+    # Format labels and weights
     all_labels = np.array(all_labels)
+    all_weights = np.array(all_weights)
     if np.any(all_labels < 0):
         all_labels = (all_labels > 0) * 1
     print(sum(len(t) for t in features_list), len(features_list), len(all_labels))
-    return (features_list, all_labels)
+    return (features_list, all_labels, all_weights)
 
 
 def main_train(config, is_read_text):
@@ -206,10 +212,10 @@ def main_train(config, is_read_text):
         valid_files = f.readlines()
 
     logger("start constructing datasets")
-    (features_train, labels_train) = get_datasets(training_files, is_read_text, prefix="train", limit=3000)
-    train = lgb.Dataset(features_train, label=labels_train, params={'max_bin': config["max_bin"]})
-    (features_valid, labels_valid) = get_datasets(valid_files, is_read_text, prefix="valid", limit=3000)
-    valid = lgb.Dataset(features_valid, label=labels_valid, params={'max_bin': config["max_bin"]})
+    (features_train, labels_train, weights_train) = get_datasets(training_files, is_read_text, prefix="train", limit=3000)
+    train = lgb.Dataset(features_train, label=labels_train, weight=weights_train, params={'max_bin': config["max_bin"]})
+    (features_valid, labels_valid, weights_valid) = get_datasets(valid_files, is_read_text, prefix="valid", limit=3000)
+    valid = lgb.Dataset(features_valid, label=labels_valid, weight=weights_valid, params={'max_bin': config["max_bin"]})
     logger("start training")
     model = train_lgb(
         train,
@@ -231,7 +237,7 @@ def main_test(config, is_read_text):
         testing_files = f.readlines()
 
     logger("start constructing datasets")
-    (features_test, labels_test) = get_datasets(testing_files, is_read_text, prefix="test", limit=3000)
+    (features_test, labels_test, weights_test) = get_datasets(testing_files, is_read_text, prefix="test", limit=3000)
 
     logger("finished loading testing data")
     pkl_model_path = os.path.join(base_dir, 'model.pkl')
