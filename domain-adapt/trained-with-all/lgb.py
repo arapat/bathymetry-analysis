@@ -123,10 +123,9 @@ def run_test(features_test, labels_test, pkl_model_path):
     # accuracy
     acc = np.sum(true == (scores > 0.5)) / true.shape[0]
 
-    with open("testing_result.pkl", 'wb') as fout:
-        pickle.dump((true, scores), fout)
-
     logger("eval, {}, {}, {}, {}, {}".format(model.num_trees(), loss, auprc, auroc, acc))
+    return (true, scores)
+
 
 
 def get_datasets(filepaths, is_read_text, limit=None, prefix="", get_label=lambda cols: cols[4] == '9999'):
@@ -234,15 +233,20 @@ def main_test(config, is_read_text):
     base_dir = config["base_dir"]
     logger("start testing")
     with open(config["testing_files"]) as f:
-        testing_files = f.readlines()
+        all_testing_files = f.readlines()
 
-    logger("start constructing datasets")
-    (features_test, labels_test, weights_test) = get_datasets(testing_files, is_read_text, prefix="test", limit=3000)
+    regions = ['AGSO', 'JAMSTEC', 'JAMSTEC2', 'NGA', 'NGDC', 'NOAA_geodas', 'SIO', 'US_multi']
+    for region in regions:
+        testing_files = [filepath for filepath in all_testing_files if "/{}/".format(region) in filepath]
+        logger("start constructing datasets")
+        (features_test, labels_test, weights_test) = get_datasets(testing_files, is_read_text, prefix="test", limit=3000)
 
-    logger("finished loading testing data")
-    pkl_model_path = os.path.join(base_dir, 'model.pkl')
-    run_test(features_test, labels_test, pkl_model_path)
-    logger("finished testing")
+        logger("finished loading testing data")
+        pkl_model_path = os.path.join(base_dir, 'model.pkl')
+        (true, scores) = run_test(features_test, labels_test, pkl_model_path)
+        with open("testing_result_{}.pkl".format(region), 'wb') as fout:
+            pickle.dump((true, scores, weights_test), fout)
+        logger("finished testing")
 
 
 # In[ ]:
