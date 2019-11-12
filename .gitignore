@@ -2,9 +2,11 @@
 .vscode
 *.txt
 *.log
+*.pdf
 
 archive/
 
 log_file.txt
 *.data
 *.pkl
+*-scores/
