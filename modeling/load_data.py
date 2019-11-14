@@ -1,0 +1,135 @@
+import io
+import os
+import pickle
+import numpy as np
+from modeling import logger
+
+
+# Set TYPE_INDEX based on what is printed above
+TYPE_INDEX = 17
+REMOVED_FEATURES = [3, 4, 5, 7]
+INTERVAL = 20
+MAX_WEIGHT = 1.0 / 100000.0
+BINARY_DIR = "binary"
+
+data_type = {
+    "M": 1,  # - multibeam
+    "G": 2,  # - grid
+    "S": 3,  # - single beam
+    "P": 4,  # - point measurement
+}
+
+
+def read_data_from_text(filename, get_label=lambda cols: cols[4] == '9999'):
+    features = []
+    labels = []
+    filename = filename.strip()
+    with io.open(filename, 'r', newline='\n') as fread:
+        for line in fread:
+            cols = line.strip().split()
+            if not cols:
+                continue
+            cols[TYPE_INDEX] = data_type[cols[TYPE_INDEX]]
+            labels.append(get_label(cols))
+            features.append(np.array(
+                [float(cols[i]) for i in range(len(cols)) if i not in REMOVED_FEATURES]
+            ))
+    assert(len(features) == len(labels))
+    weights = np.ones_like(labels) * max(MAX_WEIGHT, 1.0 / max(1.0, len(labels)))
+    return (features, labels, weights.tolist())
+
+
+def read_data_from_binary(filename):
+    with open(filename, 'rb') as f:
+        return pickle.load(f)
+
+
+def write_data_to_binary(st, features, labels, weights, filename):
+    with open(filename, 'wb') as f:
+        pickle.dump((features[st:], labels[st:], weights[st:]), f, protocol=4)
+
+
+def get_datasets(filepaths, is_read_text, prefix="", limit=None): 
+    data_features = []
+    data_labels = []
+    data_weights = []
+    last_written_length = 0
+    count = 0
+    for filename in filepaths:
+        filename = filename.strip()
+        bin_filename = get_binary_filename(prefix, filename)
+        try:
+            if is_read_text:
+                features, labels, weights = read_data_from_text(filename)
+            else:
+                features, labels, weights = read_data_from_binary(bin_filename)
+            logger.log("loaded " + filename + ", length: " + str(len(data_features)))
+        except Exception as err:
+            logger.log("Failed to load " + filename + ". Error: {}".format(err))
+
+        data_features  += features
+        data_labels    += labels
+        data_weights   += weights
+        count          += 1
+
+        curr_num_examples = len(data_features)
+        if is_read_text and count % INTERVAL == 0 and curr_num_examples > last_written_length:
+            logger.log("To write {} examples".format(curr_num_examples - last_written_length))
+            write_data_to_binary(
+                last_written_length, data_features, data_labels, data_weights, bin_filename)
+            last_written_length = curr_num_examples
+        if limit is not None and curr_num_examples > limit:
+            break
+
+    # Handle last batch
+    curr_num_examples = len(data_features)
+    if is_read_text and curr_num_examples > last_written_length:
+        write_data_to_binary(
+            last_written_length, data_features, data_labels, data_weights, bin_filename)
+    # Format labels and weights
+    data_features = np.array(data_features)
+    data_labels   = (np.array(data_labels) > 0).astype(np.int8)
+    data_weights  = np.array(data_weights)
+    print(data_features.shape[0])
+    return (data_features, data_labels, data_weights)
+
+
+def get_binary_filename(prefix, filename):
+    if prefix:
+        return prefix + "_" + os.path.basename(filename) + ".pkl"
+    if not os.path.exists(BINARY_DIR):
+        os.mkdir(BINARY_DIR)
+    filename = os.path.basename(filename) + ".pkl"
+    return os.path.join(BINARY_DIR, filename)
+
+
+def get_region_data(files, region, is_read_text, prefix, limit):
+    region_files = [filepath for filepath in files if "/{}/".format(region) in filepath]
+    return get_datasets(region_files, is_read_text, prefix=prefix, limit=limit)
+
+
+def get_model_path(base_dir, region):
+    dir_path = os.path.join(base_dir, "models")
+    if not os.path.exists(dir_path):
+        os.mkdir(dir_path)
+    return os.path.join(dir_path, '{}_model.pkl'.format(region))
+
+
+def get_prediction_path(base_dir, region):
+    dir_path = os.path.join(base_dir, "scores")
+    if not os.path.exists(dir_path):
+        os.mkdir(dir_path)
+    return os.path.join(dir_path, '{}_scores.pkl'.format(region))
+
+
+def persist_predictions(base_dir, region, label, scores, weights):
+    with open(get_prediction_path(base_dir, region), 'wb') as fout:
+        pickle.dump((label, scores, weights), fout)
+
+
+def persist_model(base_dir, region, gbm):
+    pkl_model_path = get_model_path(base_dir, region)
+    txt_model_path = pkl_model_path.rsplit('.', 1)[0] + ".txt"
+    with open(pkl_model_path, 'wb') as fout:
+        pickle.dump(gbm, fout)
+    gbm.save_model(txt_model_path)
