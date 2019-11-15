@@ -13,7 +13,6 @@ LIMIT = 3000
 PARAMS = {
     'objective': 'binary',
     'boosting_type': 'gbdt',  # 'goss',
-    'num_leaves': config["num_leaves"],
     'learning_rate': 0.1,
     'tree_learner': 'serial',
     'task': 'train',
@@ -21,7 +20,8 @@ PARAMS = {
     'min_data_in_leaf': 5000,  # This is min bound for stopping rule in Sparrow
     'two_round': True,
     'is_unbalance': True,
-    'max_bin': config["max_bin"],
+    'num_leaves': None,
+    'max_bin': None,
 }
 
 
@@ -55,8 +55,12 @@ def run_training_per_region(config, regions, all_training_files, all_valid_files
 
 
 def run_training(config, regions, is_read_text):
+    global PARAMS
+
     with open(config["training_files"]) as f:
         all_training_files = f.readlines()
     with open(config["validation_files"]) as f:
         all_valid_files = f.readlines()
+    PARAMS['num_leaves'] = config["num_leaves"],
+    PARAMS['max_bin'] = config["max_bin"],
     run_training_per_region(config, regions, all_training_files, all_valid_files, is_read_text)
