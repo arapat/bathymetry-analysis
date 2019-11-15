@@ -9,11 +9,12 @@ NUM_COLS = 35
 TYPE_INDEX = 17
 REMOVED_FEATURES = [3, 4, 5, 7]
 
-INTERVAL = 20
+MAX_NUM_EXAMPLES_PER_PICKLE = 1000000
 MAX_WEIGHT = 1.0 / 100000.0
 BINARY_DIR = "runtime_data"
 MODEL_DIR = "runtime_models"
 SCORES_DIR = "runtime_scores"
+INVENTORY = os.path.join(BINARY_DIR, "inventory.txt")
 
 data_type = {
     "M": 1,  # - multibeam
@@ -53,6 +54,8 @@ def read_data_from_binary(filename):
 def write_data_to_binary(st, features, labels, weights, filename):
     with open(filename, 'wb') as f:
         pickle.dump((features[st:], labels[st:], weights[st:]), f, protocol=4)
+    with open(INVENTORY, 'a') as f:
+        f.write(filename.strip() + '\n')
 
 
 def get_datasets(filepaths, is_read_text, prefix="", limit=None): 
@@ -60,7 +63,7 @@ def get_datasets(filepaths, is_read_text, prefix="", limit=None):
     data_labels = []
     data_weights = []
     last_written_length = 0
-    count = 0
+    inventory = load_inventory(is_read_text)
     for filename in filepaths:
         filename = filename.strip()
         bin_filename = get_binary_filename(prefix, filename)
@@ -75,7 +78,7 @@ def get_datasets(filepaths, is_read_text, prefix="", limit=None):
                 filename, incorrect_cols, len(features)))
         except Exception as err:
             # Print error message only if we are supposed to read this file
-            if is_read_text or count % INTERVAL == 0:
+            if is_read_text or filename in inventory:
                 logger.log("Failed to load {}, is_read_text, {}, Error, {}".format(
                     filename, is_read_text, err))
             continue
@@ -83,10 +86,9 @@ def get_datasets(filepaths, is_read_text, prefix="", limit=None):
         data_features  += features
         data_labels    += labels
         data_weights   += weights
-        count          += 1
 
         curr_num_examples = len(data_features)
-        if is_read_text and count % INTERVAL == 0 and curr_num_examples > last_written_length:
+        if is_read_text and curr_num_examples - last_written_length >= MAX_NUM_EXAMPLES_PER_PICKLE:
             logger.log("To write {} examples".format(curr_num_examples - last_written_length))
             write_data_to_binary(
                 last_written_length, data_features, data_labels, data_weights, bin_filename)
@@ -149,3 +151,13 @@ def persist_model(base_dir, region, gbm):
     with open(pkl_model_path, 'wb') as fout:
         pickle.dump(gbm, fout)
     gbm.save_model(txt_model_path)
+
+
+def load_inventory(is_read_text):
+    if is_read_text:
+        f = open(INVENTORY, 'w')
+        f.close()
+        return []
+    with open(INVENTORY) as f:
+        return [line.strip() for line in f.readlines()]
+
