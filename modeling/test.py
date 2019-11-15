@@ -13,7 +13,7 @@ from .load_data import persist_predictions
 
 
 TEST_PREFIX = "test"
-LIMIT = 3000
+LIMIT = None
 
 
 def run_testing(config, regions, is_read_text):

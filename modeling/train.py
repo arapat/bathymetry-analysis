@@ -9,7 +9,7 @@ from .load_data import persist_model
 
 TRAIN_PREFIX = "train"
 VALID_PREFIX = "valid"
-LIMIT = 3000
+LIMIT = None
 PARAMS = {
     'objective': 'binary',
     'boosting_type': 'gbdt',  # 'goss',

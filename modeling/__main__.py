@@ -6,7 +6,7 @@ from .train import run_training
 from .test import run_testing
 
 
-regions = ['AGSO', 'JAMSTEC', 'JAMSTEC2', 'NGA', 'NGDC', 'NOAA_geodas', 'SIO', 'US_multi']
+regions = ['AGSO', 'JAMSTEC', 'NGA', 'NGDC', 'NOAA_geodas', 'SIO', 'US_multi']
 usage_msg = "Usage: ./lgb.py <train|test|both> <text|bin>"
 
 
