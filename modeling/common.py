@@ -7,7 +7,6 @@ import pickle
 import lightgbm as lgb
 import numpy as np
 from time import time
-from modeling import logger
 
 
 DATA_BASE_DIR = "/geosat2/julaiti/tsv_all"
@@ -17,9 +16,12 @@ TESTING_FILES_DESC = os.path.join(DATA_BASE_DIR, "testing_files_desc.txt")
 
 
 class Logger:
-    def __init__(self, log_file_name):
-        self.file_handle = open(log_file_name, 'w')
+    def __init__(self):
+        self.file_handle = None
         self.starting_time = time()
+
+    def set_file_handle(self, log_file_name):
+        self.file_handle = open(log_file_name, 'w')
 
     def log(self, msg, show_time=False):
         if show_time:
@@ -54,6 +56,8 @@ def print_ts(period=1):
     callback.order = 10
     return callback
 
+
+logger = Logger()
 
 # AdaBoost potential function
 """

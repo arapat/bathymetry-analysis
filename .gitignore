@@ -4,9 +4,13 @@
 *.log
 *.pdf
 
-archive/
+*.pyc
+__pycache__/
 
 log_file.txt
 *.data
 *.pkl
 *-scores/
+
+archive/
+

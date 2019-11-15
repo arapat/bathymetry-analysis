@@ -1,7 +1,7 @@
 import multiprocessing
 import lightgbm as lgb
 
-from modeling import logger
+from . import logger
 from .common import print_ts
 from .load_data import get_region_data
 from .load_data import persist_model

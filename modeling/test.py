@@ -5,7 +5,7 @@ from sklearn.metrics import auc
 from sklearn.metrics import precision_recall_curve
 from sklearn.metrics import roc_curve
 
-from modeling import logger
+from . import logger
 from .load_data import get_region_data
 from .load_data import get_model_path
 from .load_data import get_prediction_path
@@ -38,11 +38,7 @@ def run_testing_per_region(regions, base_dir, all_testing_files, is_read_text):
         logger.log("finished testing")
 
 
-def get_scores(features_test, labels_test, pkl_model_path):
-    # format raw testing input
-    features = np.concatenate(features_test, axis=0)
-    true = labels_test * 1
-
+def get_scores(features, labels, pkl_model_path):
     # load model with pickle to predict
     with open(pkl_model_path, 'rb') as fin:
         model = pickle.load(fin)
@@ -53,13 +49,13 @@ def get_scores(features_test, labels_test, pkl_model_path):
     logger.log('finished prediction')
 
     # compute auprc
-    loss = np.mean(true * -np.log(scores) + (1 - true) * -np.log(1.0 - scores))
-    precision, recall, _ = precision_recall_curve(true, scores, pos_label=1)
+    loss = np.mean(labels * -np.log(scores) + (1 - labels) * -np.log(1.0 - scores))
+    precision, recall, _ = precision_recall_curve(labels, scores, pos_label=1)
     auprc = auc(recall, precision)
-    fpr, tpr, _ = roc_curve(true, scores, pos_label=1)
+    fpr, tpr, _ = roc_curve(labels, scores, pos_label=1)
     auroc = auc(fpr, tpr)
     # accuracy
-    acc = np.sum(true == (scores > 0.5)) / true.shape[0]
+    acc = np.sum(labels == (scores > 0.5)) / labels.shape[0]
 
     logger.log("eval, {}, {}, {}, {}, {}".format(model.num_trees(), loss, auprc, auroc, acc))
     return scores

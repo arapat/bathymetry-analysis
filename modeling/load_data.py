@@ -2,7 +2,7 @@ import io
 import os
 import pickle
 import numpy as np
-from modeling import logger
+from . import logger
 
 
 # Set TYPE_INDEX based on what is printed above
@@ -10,7 +10,9 @@ TYPE_INDEX = 17
 REMOVED_FEATURES = [3, 4, 5, 7]
 INTERVAL = 20
 MAX_WEIGHT = 1.0 / 100000.0
-BINARY_DIR = "binary"
+BINARY_DIR = "runtime_binary"
+MODEL_DIR = "runtime_models"
+SCORES_DIR = "runtime_scores"
 
 data_type = {
     "M": 1,  # - multibeam
@@ -41,7 +43,8 @@ def read_data_from_text(filename, get_label=lambda cols: cols[4] == '9999'):
 
 def read_data_from_binary(filename):
     with open(filename, 'rb') as f:
-        return pickle.load(f)
+        features, labels, weights = pickle.load(f)
+    return (features, labels, weights)
 
 
 def write_data_to_binary(st, features, labels, weights, filename):
@@ -58,14 +61,20 @@ def get_datasets(filepaths, is_read_text, prefix="", limit=None):
     for filename in filepaths:
         filename = filename.strip()
         bin_filename = get_binary_filename(prefix, filename)
+        if not is_read_text:
+            filename = bin_filename
         try:
             if is_read_text:
                 features, labels, weights = read_data_from_text(filename)
             else:
-                features, labels, weights = read_data_from_binary(bin_filename)
-            logger.log("loaded " + filename + ", length: " + str(len(data_features)))
+                features, labels, weights = read_data_from_binary(filename)
+            logger.log("loaded {}, size: {}".format(filename, len(features)))
         except Exception as err:
-            logger.log("Failed to load " + filename + ". Error: {}".format(err))
+            # Print error message only if we are supposed to read this file
+            if is_read_text or count % INTERVAL == 0:
+                logger.log("Failed to load {}, is_read_text, {}, Error, {}".format(
+                    filename, is_read_text, err))
+            continue
 
         data_features  += features
         data_labels    += labels
@@ -84,22 +93,23 @@ def get_datasets(filepaths, is_read_text, prefix="", limit=None):
     # Handle last batch
     curr_num_examples = len(data_features)
     if is_read_text and curr_num_examples > last_written_length:
+        logger.log("To write {} examples".format(curr_num_examples - last_written_length))
         write_data_to_binary(
             last_written_length, data_features, data_labels, data_weights, bin_filename)
     # Format labels and weights
     data_features = np.array(data_features)
     data_labels   = (np.array(data_labels) > 0).astype(np.int8)
     data_weights  = np.array(data_weights)
-    print(data_features.shape[0])
+    logger.log("Dataset is loaded, size {}".format(data_features.shape))
     return (data_features, data_labels, data_weights)
 
 
 def get_binary_filename(prefix, filename):
-    if prefix:
-        return prefix + "_" + os.path.basename(filename) + ".pkl"
+    if prefix and not prefix.endswith('_'):
+        prefix = prefix + '_'
     if not os.path.exists(BINARY_DIR):
         os.mkdir(BINARY_DIR)
-    filename = os.path.basename(filename) + ".pkl"
+    filename = prefix + os.path.basename(filename) + ".pkl"
     return os.path.join(BINARY_DIR, filename)
 
 
@@ -109,14 +119,14 @@ def get_region_data(files, region, is_read_text, prefix, limit):
 
 
 def get_model_path(base_dir, region):
-    dir_path = os.path.join(base_dir, "models")
+    dir_path = os.path.join(base_dir, MODEL_DIR)
     if not os.path.exists(dir_path):
         os.mkdir(dir_path)
     return os.path.join(dir_path, '{}_model.pkl'.format(region))
 
 
 def get_prediction_path(base_dir, region):
-    dir_path = os.path.join(base_dir, "scores")
+    dir_path = os.path.join(base_dir, SCORES_DIR)
     if not os.path.exists(dir_path):
         os.mkdir(dir_path)
     return os.path.join(dir_path, '{}_scores.pkl'.format(region))
