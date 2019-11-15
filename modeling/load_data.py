@@ -5,12 +5,13 @@ import numpy as np
 from . import logger
 
 
-# Set TYPE_INDEX based on what is printed above
+NUM_COLS = 35
 TYPE_INDEX = 17
 REMOVED_FEATURES = [3, 4, 5, 7]
+
 INTERVAL = 20
 MAX_WEIGHT = 1.0 / 100000.0
-BINARY_DIR = "runtime_binary"
+BINARY_DIR = "runtime_data"
 MODEL_DIR = "runtime_models"
 SCORES_DIR = "runtime_scores"
 
@@ -26,10 +27,12 @@ def read_data_from_text(filename, get_label=lambda cols: cols[4] == '9999'):
     features = []
     labels = []
     filename = filename.strip()
+    incorrect_cols = 0
     with io.open(filename, 'r', newline='\n') as fread:
         for line in fread:
             cols = line.strip().split()
-            if not cols:
+            if len(cols) != NUM_COLS:
+                incorrect_cols += 1
                 continue
             cols[TYPE_INDEX] = data_type[cols[TYPE_INDEX]]
             labels.append(get_label(cols))
@@ -38,13 +41,13 @@ def read_data_from_text(filename, get_label=lambda cols: cols[4] == '9999'):
             ))
     assert(len(features) == len(labels))
     weights = np.ones_like(labels) * max(MAX_WEIGHT, 1.0 / max(1.0, len(labels)))
-    return (features, labels, weights.tolist())
+    return (features, labels, weights.tolist(), incorrect_cols)
 
 
 def read_data_from_binary(filename):
     with open(filename, 'rb') as f:
         features, labels, weights = pickle.load(f)
-    return (features, labels, weights)
+    return (features, labels, weights, 0)
 
 
 def write_data_to_binary(st, features, labels, weights, filename):
@@ -65,10 +68,11 @@ def get_datasets(filepaths, is_read_text, prefix="", limit=None):
             filename = bin_filename
         try:
             if is_read_text:
-                features, labels, weights = read_data_from_text(filename)
+                features, labels, weights, incorrect_cols = read_data_from_text(filename)
             else:
-                features, labels, weights = read_data_from_binary(filename)
-            logger.log("loaded {}, size: {}".format(filename, len(features)))
+                features, labels, weights, incorrect_cols = read_data_from_binary(filename)
+            logger.log("loaded, {}, incorrect cols, {}, size, {}".format(
+                filename, incorrect_cols, len(features)))
         except Exception as err:
             # Print error message only if we are supposed to read this file
             if is_read_text or count % INTERVAL == 0:
@@ -109,7 +113,9 @@ def get_binary_filename(prefix, filename):
         prefix = prefix + '_'
     if not os.path.exists(BINARY_DIR):
         os.mkdir(BINARY_DIR)
-    filename = prefix + os.path.basename(filename) + ".pkl"
+    basename = os.path.basename(filename)
+    dirname = os.path.basename(os.path.dirname(filename))
+    filename = prefix + dirname + '_' + basename + ".pkl"
     return os.path.join(BINARY_DIR, filename)
 
 
