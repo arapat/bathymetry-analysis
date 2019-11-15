@@ -6,7 +6,7 @@ from time import time
 from . import logger
 
 
-DEBUG = True
+DEBUG = False
 
 NUM_COLS = 35
 TYPE_INDEX = 17

@@ -16,4 +16,6 @@ def run_train_test(config, regions, is_read_text):
     for region in regions:
         run_training_per_region(config, region, all_training_files, all_valid_files, is_read_text)
         run_testing_per_region(region, base_dir, all_testing_files, is_read_text)
+        logger.log("train_test, finished, {}".format(region))
+
 
