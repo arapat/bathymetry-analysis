@@ -33,12 +33,12 @@ def run_testing_per_region(region, base_dir, all_testing_files, is_read_text):
     logger.log("finished loading testing data")
     # Start training
     model_path = get_model_path(base_dir, region)
-    scores = get_scores(features, labels, model_path)
+    scores = get_scores(region, features, labels, model_path)
     persist_predictions(base_dir, region, labels, scores, weights)
     logger.log("finished testing")
 
 
-def get_scores(features, labels, pkl_model_path):
+def get_scores(region, features, labels, pkl_model_path):
     # load model with pickle to predict
     with open(pkl_model_path, 'rb') as fin:
         model = pickle.load(fin)
@@ -57,5 +57,6 @@ def get_scores(features, labels, pkl_model_path):
     # accuracy
     acc = np.sum(labels == (scores > 0.5)) / labels.shape[0]
 
-    logger.log("eval, {}, {}, {}, {}, {}".format(model.num_trees(), loss, auprc, auroc, acc))
+    logger.log("eval, {}, {}, {}, {}, {}, {}".format(
+        region, model.num_trees(), loss, auprc, auroc, acc))
     return scores
