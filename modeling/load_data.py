@@ -161,10 +161,6 @@ def persist_model(base_dir, region, gbm):
 
 def load_inventory(is_read_text):
     if is_read_text:
-        if not os.path.exists(BINARY_DIR):
-            os.mkdir(BINARY_DIR)
-        f = open(INVENTORY, 'w')
-        f.close()
         return []
     with open(INVENTORY) as f:
         return [line.strip() for line in f.readlines()]
