@@ -12,33 +12,32 @@ VALID_PREFIX = "valid"
 LIMIT = None
 
 
-def run_training_per_region(config, regions, all_training_files, all_valid_files, is_read_text):
-    for region in regions:
-        logger.log("Now training {}".format(region))
+def run_training_per_region(config, region, all_training_files, all_valid_files, is_read_text):
+    logger.log("Now training {}".format(region))
 
-        logger.log("start constructing datasets")
-        (t_features, t_labels, t_weights) = get_region_data(
-            all_training_files, region, is_read_text, TRAIN_PREFIX, LIMIT)
-        train_dataset = lgb.Dataset(
-            t_features, label=t_labels, weight=t_weights, params={'max_bin': config["max_bin"]})
-        (v_features, v_labels, v_weights) = get_region_data(
-            all_valid_files, region, is_read_text, VALID_PREFIX, LIMIT)
-        valid_dataset = lgb.Dataset(
-            v_features, label=v_labels, weight=v_weights, params={'max_bin': config["max_bin"]})
+    logger.log("start constructing datasets")
+    (t_features, t_labels, t_weights) = get_region_data(
+        all_training_files, region, is_read_text, TRAIN_PREFIX, LIMIT)
+    train_dataset = lgb.Dataset(
+        t_features, label=t_labels, weight=t_weights, params={'max_bin': config["max_bin"]})
+    (v_features, v_labels, v_weights) = get_region_data(
+        all_valid_files, region, is_read_text, VALID_PREFIX, LIMIT)
+    valid_dataset = lgb.Dataset(
+        v_features, label=v_labels, weight=v_weights, params={'max_bin': config["max_bin"]})
 
-        logger.log("start training...")
-        gbm = lgb.train(
-            config,
-            train_dataset,
-            num_boost_round=config["rounds"],
-            early_stopping_rounds=config["early_stopping_rounds"],
-            valid_sets=[train_dataset, valid_dataset],
-            callbacks=[print_ts()],
-            # fobj=expobj, feval=exp_eval,
-        )
-        logger.log("training completed.")
-        persist_model(config["base_dir"], region, gbm)
-        logger.log("Model for {} is persisted".format(region))
+    logger.log("start training...")
+    gbm = lgb.train(
+        config,
+        train_dataset,
+        num_boost_round=config["rounds"],
+        early_stopping_rounds=config["early_stopping_rounds"],
+        valid_sets=[train_dataset, valid_dataset],
+        callbacks=[print_ts()],
+        # fobj=expobj, feval=exp_eval,
+    )
+    logger.log("training completed.")
+    persist_model(config["base_dir"], region, gbm)
+    logger.log("Model for {} is persisted".format(region))
 
 
 def run_training(config, regions, is_read_text):
@@ -46,4 +45,5 @@ def run_training(config, regions, is_read_text):
         all_training_files = f.readlines()
     with open(config["validation_files"]) as f:
         all_valid_files = f.readlines()
-    run_training_per_region(config, regions, all_training_files, all_valid_files, is_read_text)
+    for region in regions:
+        run_training_per_region(config, region, all_training_files, all_valid_files, is_read_text)

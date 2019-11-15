@@ -22,20 +22,20 @@ def run_testing(config, regions, is_read_text):
     with open(config["testing_files"]) as f:
         all_testing_files = f.readlines()
 
-    run_testing_per_region(regions, base_dir, all_testing_files, is_read_text)
-
-
-def run_testing_per_region(regions, base_dir, all_testing_files, is_read_text):
     for region in regions:
-        logger.log("start constructing datasets")
-        (features, labels, weights) = \
-            get_region_data(all_testing_files, region, is_read_text, TEST_PREFIX, LIMIT)
-        logger.log("finished loading testing data")
-        # Start training
-        model_path = get_model_path(base_dir, region)
-        scores = get_scores(features, labels, model_path)
-        persist_predictions(base_dir, region, labels, scores, weights)
-        logger.log("finished testing")
+        run_testing_per_region(region, base_dir, all_testing_files, is_read_text)
+
+
+def run_testing_per_region(region, base_dir, all_testing_files, is_read_text):
+    logger.log("start constructing datasets")
+    (features, labels, weights) = \
+        get_region_data(all_testing_files, region, is_read_text, TEST_PREFIX, LIMIT)
+    logger.log("finished loading testing data")
+    # Start training
+    model_path = get_model_path(base_dir, region)
+    scores = get_scores(features, labels, model_path)
+    persist_predictions(base_dir, region, labels, scores, weights)
+    logger.log("finished testing")
 
 
 def get_scores(features, labels, pkl_model_path):

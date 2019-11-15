@@ -2,14 +2,19 @@ import io
 import os
 import pickle
 import numpy as np
+from time import time
 from . import logger
 
+
+DEBUG = True
 
 NUM_COLS = 35
 TYPE_INDEX = 17
 REMOVED_FEATURES = [3, 4, 5, 7]
 
 MAX_NUM_EXAMPLES_PER_PICKLE = 1000000
+if DEBUG:
+    MAX_NUM_EXAMPLES_PER_PICKLE = 300000
 MAX_WEIGHT = 1.0 / 100000.0
 BINARY_DIR = "runtime_data"
 MODEL_DIR = "runtime_models"
@@ -64,6 +69,7 @@ def get_datasets(filepaths, is_read_text, prefix="", limit=None):
     data_weights = []
     last_written_length = 0
     inventory = load_inventory(is_read_text)
+    start_time = time()
     for filename in filepaths:
         filename = filename.strip()
         bin_filename = get_binary_filename(prefix, filename)
@@ -93,7 +99,7 @@ def get_datasets(filepaths, is_read_text, prefix="", limit=None):
             write_data_to_binary(
                 last_written_length, data_features, data_labels, data_weights, bin_filename)
             last_written_length = curr_num_examples
-        if limit is not None and curr_num_examples > limit:
+        if limit is not None and curr_num_examples > limit or DEBUG and time() - start_time > 10:
             break
 
     # Handle last batch
@@ -155,6 +161,8 @@ def persist_model(base_dir, region, gbm):
 
 def load_inventory(is_read_text):
     if is_read_text:
+        if not os.path.exists(BINARY_DIR):
+            os.mkdir(BINARY_DIR)
         f = open(INVENTORY, 'w')
         f.close()
         return []
