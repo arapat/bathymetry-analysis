@@ -1,0 +1,20 @@
+{
+    "base_dir": "./",
+    "training_files": "/geosat2/julaiti/tsv_all/training_files_desc.txt",
+    "validation_files": "/geosat2/julaiti/tsv_all/validation_files_desc.txt",
+    "testing_files": "/geosat2/julaiti/tsv_all/testing_files_desc.txt",
+    "rounds": 1000,
+    "early_stopping_rounds": 200,
+
+    "objective": "binary",
+    "boosting_type": "gbdt",
+    "learning_rate": 0.1,
+    "tree_learner": "serial",
+    "task": "train",
+    "num_thread": 12,
+    "min_data_in_leaf": 5000,
+    "two_round": true,
+    "is_unbalance": true,
+    "num_leaves": 31,
+    "max_bin": 255
+}

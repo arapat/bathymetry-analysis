@@ -10,19 +10,6 @@ from .load_data import persist_model
 TRAIN_PREFIX = "train"
 VALID_PREFIX = "valid"
 LIMIT = None
-PARAMS = {
-    'objective': 'binary',
-    'boosting_type': 'gbdt',  # 'goss',
-    'learning_rate': 0.1,
-    'tree_learner': 'serial',
-    'task': 'train',
-    'num_thread': multiprocessing.cpu_count(),
-    'min_data_in_leaf': 5000,  # This is min bound for stopping rule in Sparrow
-    'two_round': True,
-    'is_unbalance': True,
-    'num_leaves': None,
-    'max_bin': None,
-}
 
 
 def run_training_per_region(config, regions, all_training_files, all_valid_files, is_read_text):
@@ -41,7 +28,7 @@ def run_training_per_region(config, regions, all_training_files, all_valid_files
 
         logger.log("start training...")
         gbm = lgb.train(
-            PARAMS,
+            config,
             train_dataset,
             num_boost_round=config["rounds"],
             early_stopping_rounds=config["early_stopping_rounds"],
@@ -55,12 +42,8 @@ def run_training_per_region(config, regions, all_training_files, all_valid_files
 
 
 def run_training(config, regions, is_read_text):
-    global PARAMS
-
     with open(config["training_files"]) as f:
         all_training_files = f.readlines()
     with open(config["validation_files"]) as f:
         all_valid_files = f.readlines()
-    PARAMS['num_leaves'] = config["num_leaves"],
-    PARAMS['max_bin'] = config["max_bin"],
     run_training_per_region(config, regions, all_training_files, all_valid_files, is_read_text)
