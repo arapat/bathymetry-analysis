@@ -17,11 +17,11 @@ def run_training_per_region(config, region, all_training_files, all_valid_files,
 
     logger.log("start constructing datasets")
     (t_features, t_labels, t_weights) = get_region_data(
-        all_training_files, region, is_read_text, TRAIN_PREFIX, LIMIT)
+        all_training_files, region, is_read_text, "{}_{}".format(TRAIN_PREFIX, region), LIMIT)
     train_dataset = lgb.Dataset(
         t_features, label=t_labels, weight=t_weights, params={'max_bin': config["max_bin"]})
     (v_features, v_labels, v_weights) = get_region_data(
-        all_valid_files, region, is_read_text, VALID_PREFIX, LIMIT)
+        all_valid_files, region, is_read_text, "{}_{}".format(VALID_PREFIX, region), LIMIT)
     valid_dataset = lgb.Dataset(
         v_features, label=v_labels, weight=v_weights, params={'max_bin': config["max_bin"]})
 

@@ -29,7 +29,7 @@ def run_testing(config, regions, is_read_text):
 def run_testing_per_region(region, base_dir, all_testing_files, is_read_text):
     logger.log("start constructing datasets")
     (features, labels, weights) = \
-        get_region_data(all_testing_files, region, is_read_text, TEST_PREFIX, LIMIT)
+        get_region_data(all_testing_files, region, is_read_text, "{}_{}".format(TEST_PREFIX, region), LIMIT)
     logger.log("finished loading testing data")
     # Start training
     model_path = get_model_path(base_dir, region)

@@ -19,7 +19,7 @@ MAX_WEIGHT = 1.0 / 100000.0
 BINARY_DIR = "runtime_data"
 MODEL_DIR = "runtime_models"
 SCORES_DIR = "runtime_scores"
-INVENTORY = os.path.join(BINARY_DIR, "inventory.txt")
+INVENTORY = os.path.join(BINARY_DIR, "inventory_{}.txt")
 
 data_type = {
     "M": 1,  # - multibeam
@@ -56,10 +56,10 @@ def read_data_from_binary(filename):
     return (features, labels, weights, 0)
 
 
-def write_data_to_binary(st, features, labels, weights, filename):
+def write_data_to_binary(st, features, labels, weights, filename, prefix):
     with open(filename, 'wb') as f:
         pickle.dump((features[st:], labels[st:], weights[st:]), f, protocol=4)
-    with open(INVENTORY, 'a') as f:
+    with open(INVENTORY.format(prefix), 'a') as f:
         f.write(filename.strip() + '\n')
 
 
@@ -68,7 +68,7 @@ def get_datasets(filepaths, is_read_text, prefix="", limit=None):
     data_labels = []
     data_weights = []
     last_written_length = 0
-    inventory = load_inventory(is_read_text)
+    inventory = load_inventory(is_read_text, prefix)
     start_time = time()
     for filename in filepaths:
         filename = filename.strip()
@@ -97,7 +97,7 @@ def get_datasets(filepaths, is_read_text, prefix="", limit=None):
         if is_read_text and curr_num_examples - last_written_length >= MAX_NUM_EXAMPLES_PER_PICKLE:
             logger.log("To write {} examples".format(curr_num_examples - last_written_length))
             write_data_to_binary(
-                last_written_length, data_features, data_labels, data_weights, bin_filename)
+                last_written_length, data_features, data_labels, data_weights, bin_filename, prefix)
             last_written_length = curr_num_examples
         if limit is not None and curr_num_examples > limit or DEBUG and time() - start_time > 10:
             break
@@ -107,7 +107,7 @@ def get_datasets(filepaths, is_read_text, prefix="", limit=None):
     if is_read_text and curr_num_examples > last_written_length:
         logger.log("To write {} examples".format(curr_num_examples - last_written_length))
         write_data_to_binary(
-            last_written_length, data_features, data_labels, data_weights, bin_filename)
+            last_written_length, data_features, data_labels, data_weights, bin_filename, prefix)
     # Format labels and weights
     data_features = np.array(data_features)
     data_labels   = (np.array(data_labels) > 0).astype(np.int8)
@@ -159,9 +159,13 @@ def persist_model(base_dir, region, gbm):
     gbm.save_model(txt_model_path)
 
 
-def load_inventory(is_read_text):
+def load_inventory(is_read_text, prefix):
     if is_read_text:
+        if not os.path.exists(BINARY_DIR):
+            os.mkdir(BINARY_DIR)
+        f = open(INVENTORY.format(prefix), 'w')
+        f.close()
         return []
-    with open(INVENTORY) as f:
+    with open(INVENTORY.format(prefix)) as f:
         return [line.strip() for line in f.readlines()]
 
