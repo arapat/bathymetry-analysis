@@ -34,7 +34,7 @@ def run_testing_per_region(region, base_dir, all_testing_files, is_read_text):
     # Start training
     model_path = get_model_path(base_dir, region)
     scores = get_scores(region, features, labels, model_path)
-    persist_predictions(base_dir, region, labels, scores, weights)
+    persist_predictions(base_dir, region, features, labels, scores, weights)
     logger.log("finished testing")
 
 

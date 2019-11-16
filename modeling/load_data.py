@@ -146,9 +146,9 @@ def get_prediction_path(base_dir, region):
     return os.path.join(dir_path, '{}_scores.pkl'.format(region))
 
 
-def persist_predictions(base_dir, region, label, scores, weights):
+def persist_predictions(base_dir, region, features, label, scores, weights):
     with open(get_prediction_path(base_dir, region), 'wb') as fout:
-        pickle.dump((label, scores, weights), fout)
+        pickle.dump((features[:, :4], label, scores, weights), fout)
 
 
 def persist_model(base_dir, region, gbm):
