@@ -8,9 +8,7 @@
 __pycache__/
 
 log_file.txt
-*.data
-*.pkl
-*-scores/
+runs/
 
 archive/
 
