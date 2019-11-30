@@ -8,7 +8,7 @@ from . import logger
 
 DEBUG = False
 
-NUM_COLS = 35
+NUM_COLS = 36
 TYPE_INDEX = 17
 REMOVED_FEATURES = [3, 4, 5, 7]
 REMOVED_FEATURES_FROM_BIN = [0, 1]
@@ -27,6 +27,7 @@ data_type = {
     "G": 2,  # - grid
     "S": 3,  # - single beam
     "P": 4,  # - point measurement
+    "X": np.nan,
 }
 
 
@@ -38,9 +39,11 @@ def read_data_from_text(filename, get_label=lambda cols: cols[4] == '9999'):
     with io.open(filename, 'r', newline='\n') as fread:
         for line in fread:
             cols = line.strip().split()
-            if len(cols) != NUM_COLS:
+            if len(cols) not in [NUM_COLS, NUM_COLS - 2]:
                 incorrect_cols += 1
                 continue
+            if len(cols) == NUM_COLS - 2:
+                cols = ["X"] * 2
             cols[TYPE_INDEX] = data_type[cols[TYPE_INDEX]]
             labels.append(get_label(cols))
             features.append(np.array(
