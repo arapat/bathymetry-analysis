@@ -9,7 +9,7 @@ from . import logger
 DEBUG = False
 
 NUM_COLS = 36
-TYPE_INDEX = 17
+TYPE_INDEX = 35
 REMOVED_FEATURES = [3, 4, 5, 7]
 REMOVED_FEATURES_FROM_BIN = [0, 1]
 
