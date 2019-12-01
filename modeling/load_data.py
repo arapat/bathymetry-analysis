@@ -103,7 +103,7 @@ def get_datasets(filepaths, is_read_text, prefix="", limit=None):
             write_data_to_binary(
                 last_written_length, data_features, data_labels, data_weights, bin_filename, prefix)
             last_written_length = curr_num_examples
-        if limit is not None and curr_num_examples > limit or DEBUG and time() - start_time > 10:
+        if limit is not None and curr_num_examples > limit or DEBUG and time() - start_time > 5:
             break
 
     # Handle last batch

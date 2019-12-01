@@ -26,13 +26,15 @@ def run_training_per_region(config, region, all_training_files, all_valid_files,
         v_features, label=v_labels, weight=v_weights, params={'max_bin': config["max_bin"]})
 
     logger.log("start training...")
+    # Strange bug exists that prevents saving all iterations if `early_stopping_rounds` is enabled
+    config["early_stopping_rounds"] = None
     gbm = lgb.train(
         config,
         train_dataset,
         num_boost_round=config["rounds"],
-        early_stopping_rounds=config["early_stopping_rounds"],
         valid_sets=[train_dataset, valid_dataset],
         callbacks=[print_ts()],
+        # early_stopping_rounds=config["early_stopping_rounds"],
         # fobj=expobj, feval=exp_eval,
     )
     logger.log("training completed.")
