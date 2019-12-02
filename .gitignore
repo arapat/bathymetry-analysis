@@ -9,6 +9,7 @@ __pycache__/
 
 log_file.txt
 runs/
+commons/export
 
 archive/
 
