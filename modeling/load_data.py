@@ -84,8 +84,8 @@ def get_datasets(filepaths, is_read_text, prefix="", limit=None):
                 features, labels, weights, incorrect_cols = read_data_from_text(filename)
             else:
                 features, labels, weights, incorrect_cols = read_data_from_binary(filename)
-            logger.log("loaded, {}, incorrect cols, {}, size, {}".format(
-                filename, incorrect_cols, len(features)))
+            logger.log("loaded, {}, incorrect cols, {}, size, {}, dim, {}".format(
+                filename, incorrect_cols, len(features), features[0].shape[0]))
         except Exception as err:
             # Print error message only if we are supposed to read this file
             if is_read_text or filename in inventory:
