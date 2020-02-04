@@ -7,7 +7,8 @@ from .test import run_testing
 from .train_test import run_train_test
 
 
-regions = ['all', 'AGSO', 'JAMSTEC', 'NGA', 'NGDC', 'NOAA_geodas', 'SIO', 'US_multi']
+regions = ['AGSO', 'JAMSTEC', 'NGA', 'NGDC', 'NOAA_geodas', 'SIO', 'US_multi']
+train_all = True
 usage_msg = "Usage: ./lgb.py <text|bin> <train|test|both> <config_path>"
 
 
@@ -26,11 +27,11 @@ if __name__ == '__main__':
 
     if sys.argv[2].lower() == "train":
         logger.set_file_handle("./training_log.log")
-        run_training(config, regions, is_read_text)
+        run_training(config, regions, is_read_text, train_all)
     elif sys.argv[2].lower() == "test":
         logger.set_file_handle("./testing_log.log")
-        run_testing(config, regions, is_read_text)
+        run_testing(config, regions, is_read_text, train_all)
     else:  # "both"
         logger.set_file_handle("./train_test_log.log")
-        run_train_test(config, regions, is_read_text)
+        run_train_test(config, regions, is_read_text, train_all)
 

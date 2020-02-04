@@ -16,25 +16,31 @@ TEST_PREFIX = "test"
 LIMIT = None
 
 
-def run_testing(config, regions, is_read_text):
+def run_testing(config, regions, is_read_text, test_all):
     base_dir = config["base_dir"]
     logger.log("start testing")
     with open(config["testing_files"]) as f:
         all_testing_files = f.readlines()
 
-    for region in regions:
-        run_testing_per_region(region, base_dir, all_testing_files, is_read_text)
+    if test_all:
+        run_testing_per_region(regions, base_dir, all_testing_files, is_read_text)
+    else:
+        for region in regions:
+            run_testing_per_region(region, base_dir, all_testing_files, is_read_text)
 
 
 def run_testing_per_region(region, base_dir, all_testing_files, is_read_text):
     logger.log("start constructing datasets")
+    region_str = "all"
+    if type(region) is not list:
+        region_str = region
     (features, labels, weights) = \
-        get_region_data(all_testing_files, region, is_read_text, "{}_{}".format(TEST_PREFIX, region), LIMIT)
+        get_region_data(all_testing_files, region, is_read_text, "{}_{}".format(TEST_PREFIX, region_str), LIMIT)
     logger.log("finished loading testing data")
     # Start training
-    model_path = get_model_path(base_dir, region)
-    scores = get_scores(region, features, labels, model_path)
-    persist_predictions(base_dir, region, features, labels, scores, weights)
+    model_path = get_model_path(base_dir, region_str)
+    scores = get_scores(region_str, features, labels, model_path)
+    persist_predictions(base_dir, region_str, features, labels, scores, weights)
     logger.log("finished testing")
 
 

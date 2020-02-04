@@ -41,14 +41,17 @@ def run_training_per_region(config, region, all_training_files, all_valid_files,
         # fobj=expobj, feval=exp_eval,
     )
     logger.log("training completed.")
-    persist_model(config["base_dir"], region, gbm)
-    logger.log("Model for {} is persisted".format(region))
+    persist_model(config["base_dir"], region_str, gbm)
+    logger.log("Model for {} is persisted".format(region_str))
 
 
-def run_training(config, regions, is_read_text):
+def run_training(config, regions, is_read_text, train_all):
     with open(config["training_files"]) as f:
         all_training_files = f.readlines()
     with open(config["validation_files"]) as f:
         all_valid_files = f.readlines()
-    for region in regions:
-        run_training_per_region(config, region, all_training_files, all_valid_files, is_read_text)
+    if train_all:
+        run_training_per_region(config, regions, all_training_files, all_valid_files, is_read_text)
+    else:
+        for region in regions:
+            run_training_per_region(config, region, all_training_files, all_valid_files, is_read_text)
