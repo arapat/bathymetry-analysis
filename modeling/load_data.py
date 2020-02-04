@@ -133,18 +133,21 @@ def get_binary_filename(prefix, filename):
         os.mkdir(BINARY_DIR)
     basename = os.path.basename(filename)
     dirname = os.path.basename(os.path.dirname(filename))
-    if prefix.endswith("all_"):
-        prefix = prefix.replace("all", basename.split("_", 1)[0])
-        if prefix.endswith("US_"):
-            prefix += "multi_"
-        elif prefix.endswith("NOAA_"):
-            prefix += "geodas_"
+    prefix = prefix.replace("all", dirname)
     filename = prefix + dirname + '_' + basename + ".pkl"
     return os.path.join(BINARY_DIR, filename)
 
 
 def get_region_data(files, region, is_read_text, prefix, limit):
-    region_files = [filepath for filepath in files if region == "all" or "/{}/".format(region) in filepath]
+    def get_files(region):
+        return [filepath for filepath in files
+                if "/{}/".format(region) in filepath]
+    if type(region) is list:
+        region_files = []
+        for t in region:
+            region_files += get_files(t)
+    else:
+        region_files = get_files(region)
     return get_datasets(region_files, is_read_text, prefix=prefix, limit=limit)
 
 
