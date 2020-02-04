@@ -12,4 +12,4 @@ runs/
 commons/export
 
 archive/
-
+*.tsv*

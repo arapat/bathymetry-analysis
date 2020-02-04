@@ -138,7 +138,7 @@ def get_binary_filename(prefix, filename):
 
 
 def get_region_data(files, region, is_read_text, prefix, limit):
-    region_files = [filepath for filepath in files if "/{}/".format(region) in filepath]
+    region_files = [filepath for filepath in files if region == "all" or "/{}/".format(region) in filepath]
     return get_datasets(region_files, is_read_text, prefix=prefix, limit=limit)
 
 
