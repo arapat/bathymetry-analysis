@@ -133,6 +133,12 @@ def get_binary_filename(prefix, filename):
         os.mkdir(BINARY_DIR)
     basename = os.path.basename(filename)
     dirname = os.path.basename(os.path.dirname(filename))
+    if prefix.endswith("all_"):
+        prefix = prefix.replace("all", basename.split("_", 1)[0])
+        if prefix.endswith("US_"):
+            prefix += "multi_"
+        elif prefix.endswith("NOAA_"):
+            prefix += "geodas_"
     filename = prefix + dirname + '_' + basename + ".pkl"
     return os.path.join(BINARY_DIR, filename)
 
@@ -178,4 +184,3 @@ def load_inventory(is_read_text, prefix):
         return []
     with open(INVENTORY.format(prefix)) as f:
         return [line.strip() for line in f.readlines()]
-
