@@ -50,7 +50,8 @@ def read_data_from_text(filename, get_label=lambda cols: cols[4] == '9999'):
                 [float(cols[i]) for i in range(len(cols)) if i not in REMOVED_FEATURES]
             ))
     assert(len(features) == len(labels))
-    weights = np.ones_like(labels) * max(MAX_WEIGHT, 1.0 / max(1.0, len(labels)))
+    # weights = np.ones_like(labels) * max(MAX_WEIGHT, 1.0 / max(1.0, len(labels)))
+    weights = np.ones_like(labels)
     return (features, labels, weights.tolist(), incorrect_cols)
 
 
