@@ -34,7 +34,7 @@ def run_testing_per_region(region, base_dir, all_testing_files, is_read_text, lo
     if type(region) is not list:
         region_str = region
     (features, labels, weights) = \
-        get_region_data(all_testing_files, region, is_read_text,
+        get_region_data(base_dir, all_testing_files, region, is_read_text,
                 "{}_{}".format(TEST_PREFIX, region_str), LIMIT, logger)
     logger.log("finished loading testing data")
     # Start training
