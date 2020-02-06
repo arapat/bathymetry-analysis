@@ -30,6 +30,17 @@ data_type = {
 }
 
 
+def init_setup(base_dir):
+    if not os.path.exists(BINARY_DIR):
+        os.mkdir(BINARY_DIR)
+    dir_path = os.path.join(base_dir, MODEL_DIR)
+    if not os.path.exists(dir_path):
+        os.mkdir(dir_path)
+    dir_path = os.path.join(base_dir, SCORES_DIR)
+    if not os.path.exists(dir_path):
+        os.mkdir(dir_path)
+
+
 def read_data_from_text(filename, get_label=lambda cols: cols[4] == '9999'):
     features = []
     labels = []
@@ -129,8 +140,6 @@ def get_datasets(filepaths, is_read_text, logger, prefix="", limit=None):
 def get_binary_filename(prefix, filename):
     if prefix and not prefix.endswith('_'):
         prefix = prefix + '_'
-    if not os.path.exists(BINARY_DIR):
-        os.mkdir(BINARY_DIR)
     basename = os.path.basename(filename)
     dirname = os.path.basename(os.path.dirname(filename))
     prefix = prefix.replace("all", dirname)
@@ -153,15 +162,11 @@ def get_region_data(files, region, is_read_text, prefix, limit, logger):
 
 def get_model_path(base_dir, region):
     dir_path = os.path.join(base_dir, MODEL_DIR)
-    if not os.path.exists(dir_path):
-        os.mkdir(dir_path)
     return os.path.join(dir_path, '{}_model.pkl'.format(region))
 
 
 def get_prediction_path(base_dir, region):
     dir_path = os.path.join(base_dir, SCORES_DIR)
-    if not os.path.exists(dir_path):
-        os.mkdir(dir_path)
     return os.path.join(dir_path, '{}_scores.pkl'.format(region))
 
 
@@ -180,8 +185,6 @@ def persist_model(base_dir, region, gbm):
 
 def load_inventory(is_read_text, prefix):
     if is_read_text:
-        if not os.path.exists(BINARY_DIR):
-            os.mkdir(BINARY_DIR)
         f = open(INVENTORY.format(prefix), 'w')
         f.close()
         return []

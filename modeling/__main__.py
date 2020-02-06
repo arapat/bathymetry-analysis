@@ -3,6 +3,7 @@ import ray
 import sys
 
 from .common import Logger
+from .load_data import init_setup
 from .train import run_training
 from .test import run_testing
 from .train_test import run_train_test
@@ -39,6 +40,7 @@ if __name__ == '__main__':
     is_read_text = (sys.argv[1].lower() == "text")
     with open(sys.argv[3]) as f:
         config = json.load(f)
+    init_setup(config["base_dir"])
 
     # with open("regions.txt") as f:
     #     regions = f.readline().strip().split()
@@ -48,5 +50,4 @@ if __name__ == '__main__':
     for region in all_regions:
         result_ids.append(run_prog.remote([region], task))
     results = ray.get(result_ids)
-
 
