@@ -164,13 +164,13 @@ def get_model_path(base_dir, region):
     return os.path.join(dir_path, '{}_model.pkl'.format(region))
 
 
-def get_prediction_path(base_dir, region):
+def get_prediction_path(base_dir, model_region, test_region):
     dir_path = os.path.join(base_dir, SCORES_DIR)
-    return os.path.join(dir_path, '{}_scores.pkl'.format(region))
+    return os.path.join(dir_path, 'model_{}_test_{}_scores.pkl'.format(model_region, test_region))
 
 
-def persist_predictions(base_dir, region, features, label, scores, weights):
-    with open(get_prediction_path(base_dir, region), 'wb') as fout:
+def persist_predictions(base_dir, model_region, test_region, features, label, scores, weights):
+    with open(get_prediction_path(base_dir, model_region, test_region), 'wb') as fout:
         pickle.dump((features[:, :4], label, scores, weights), fout)
 
 

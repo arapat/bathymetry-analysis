@@ -15,13 +15,14 @@ def run_train_test(config, regions, is_read_text, run_all, logger):
     if run_all:
         run_training_per_region(config, regions, all_training_files, all_valid_files, is_read_text,
                 logger)
-        run_testing_per_region(regions, base_dir, all_testing_files, is_read_text, logger)
+        run_testing_per_region("all", regions, base_dir, all_testing_files, is_read_text, logger)
         logger.log("train_test, finished, all")
     else:
         for region in regions:
             run_training_per_region(config, region, all_training_files, all_valid_files,
                     is_read_text, logger)
-            run_testing_per_region(region, base_dir, all_testing_files, is_read_text, logger)
+            run_testing_per_region(
+                region, region, base_dir, all_testing_files, is_read_text, logger)
             logger.log("train_test, finished, {}".format(region))
 
 
