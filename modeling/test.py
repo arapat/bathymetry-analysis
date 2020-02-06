@@ -39,12 +39,12 @@ def run_testing_per_region(region, base_dir, all_testing_files, is_read_text, lo
     logger.log("finished loading testing data")
     # Start training
     model_path = get_model_path(base_dir, region_str)
-    scores = get_scores(region_str, features, labels, model_path)
+    scores = get_scores(region_str, features, labels, model_path, logger)
     persist_predictions(base_dir, region_str, features, labels, scores, weights)
     logger.log("finished testing")
 
 
-def get_scores(region, features, labels, pkl_model_path):
+def get_scores(region, features, labels, pkl_model_path, logger):
     # load model with pickle to predict
     with open(pkl_model_path, 'rb') as fin:
         model = pickle.load(fin)

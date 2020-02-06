@@ -11,7 +11,7 @@ from .train_test import run_train_test
 
 
 all_regions = ['AGSO', 'JAMSTEC', 'NGA', 'NGDC', 'NOAA_geodas', 'SIO', 'US_multi']
-train_all = False
+train_all = True
 usage_msg = "Usage: ./lgb.py <text|bin> <train|test|both> <config_path>"
 
 
@@ -46,12 +46,14 @@ if __name__ == '__main__':
         config = json.load(f)
     init_setup(config["base_dir"])
 
-    # with open("regions.txt") as f:
-    #     regions = f.readline().strip().split()
-    ray.init()
     task = sys.argv[2].lower()
-    result_ids = []
-    for region in all_regions:
-        result_ids.append(run_prog.remote([region], task))
-    results = ray.get(result_ids)
+    ray.init()
+    if train_all:
+        result_id = run_prog.remote(all_regions, task)
+        ray.get([result_id])
+    else:
+        result_ids = []
+        for region in all_regions:
+            result_ids.append(run_prog.remote([region], task))
+        results = ray.get(result_ids)
 
