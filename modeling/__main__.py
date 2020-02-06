@@ -18,13 +18,16 @@ usage_msg = "Usage: ./lgb.py <text|bin> <train|test|both> <config_path>"
 def run_prog(regions, task):
     logger = Logger()
     if task == "train":
-        logger.set_file_handle("./training_log_{}.log".format(regions[0]))
+        logfile = os.path.join(config["base_dir"], "training_log_{}.log".format(regions[0]))
+        logger.set_file_handle(logfile)
         run_training(config, regions, is_read_text, train_all, logger)
     elif task == "test":
-        logger.set_file_handle("./testing_log_{}.log".format(regions[0]))
+        logfile = os.path.join(config["base_dir"], "testing_log_{}.log".format(regions[0]))
+        logger.set_file_handle(logfile)
         run_testing(config, regions, is_read_text, train_all, logger)
     else:  # "both"
-        logger.set_file_handle("./train_test_log_{}.log".format(regions[0]))
+        logfile = os.path.join(config["base_dir"], "train_test_log_{}.log".format(regions[0]))
+        logger.set_file_handle(logfile)
         run_train_test(config, regions, is_read_text, train_all, logger)
 
 

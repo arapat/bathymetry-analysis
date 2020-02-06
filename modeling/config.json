@@ -1,5 +1,5 @@
 {
-    "base_dir": "./",
+    "base_dir": "./per-region/",
     "training_files": "/geosat2/julaiti/new_features_1130/training_files_desc.txt",
     "validation_files": "/geosat2/julaiti/new_features_1130/validation_files_desc.txt",
     "testing_files": "/geosat2/julaiti/new_features_1130/testing_files_desc.txt",

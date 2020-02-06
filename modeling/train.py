@@ -37,7 +37,7 @@ def run_training_per_region(config, region, all_training_files, all_valid_files,
         train_dataset,
         num_boost_round=config["rounds"],
         valid_sets=[train_dataset, valid_dataset],
-        callbacks=[print_ts()],
+        callbacks=[print_ts(logger)],
         # early_stopping_rounds=config["early_stopping_rounds"],
         # fobj=expobj, feval=exp_eval,
     )
