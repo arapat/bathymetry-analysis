@@ -1,9 +1,8 @@
-from . import logger
 from .train import run_training_per_region
 from .test import run_testing_per_region
 
 
-def run_train_test(config, regions, is_read_text, run_all):
+def run_train_test(config, regions, is_read_text, run_all, logger):
     logger.log("start training and testing")
     with open(config["testing_files"]) as f:
         all_testing_files = f.readlines()
@@ -14,13 +13,15 @@ def run_train_test(config, regions, is_read_text, run_all):
     base_dir = config["base_dir"]
 
     if run_all:
-        run_training_per_region(config, regions, all_training_files, all_valid_files, is_read_text)
-        run_testing_per_region(regions, base_dir, all_testing_files, is_read_text)
+        run_training_per_region(config, regions, all_training_files, all_valid_files, is_read_text,
+                logger)
+        run_testing_per_region(regions, base_dir, all_testing_files, is_read_text, logger)
         logger.log("train_test, finished, all")
     else:
         for region in regions:
-            run_training_per_region(config, region, all_training_files, all_valid_files, is_read_text)
-            run_testing_per_region(region, base_dir, all_testing_files, is_read_text)
+            run_training_per_region(config, region, all_training_files, all_valid_files,
+                    is_read_text, logger)
+            run_testing_per_region(region, base_dir, all_testing_files, is_read_text, logger)
             logger.log("train_test, finished, {}".format(region))
 
 

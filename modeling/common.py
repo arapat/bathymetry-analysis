@@ -36,7 +36,7 @@ class Logger:
         self.file_handle.flush()
 
 
-def print_ts(period=1):
+def print_ts(logger, period=1):
     """Create a callback that prints the tree is generated.
 
     Parameters
@@ -56,8 +56,6 @@ def print_ts(period=1):
     callback.order = 10
     return callback
 
-
-logger = Logger()
 
 # AdaBoost potential function
 """

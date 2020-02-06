@@ -3,7 +3,6 @@ import os
 import pickle
 import numpy as np
 from time import time
-from . import logger
 
 
 DEBUG = False
@@ -68,7 +67,7 @@ def write_data_to_binary(st, features, labels, weights, filename, prefix):
         f.write(filename.strip() + '\n')
 
 
-def get_datasets(filepaths, is_read_text, prefix="", limit=None): 
+def get_datasets(filepaths, is_read_text, logger, prefix="", limit=None): 
     data_features = []
     data_labels = []
     data_weights = []
@@ -139,7 +138,7 @@ def get_binary_filename(prefix, filename):
     return os.path.join(BINARY_DIR, filename)
 
 
-def get_region_data(files, region, is_read_text, prefix, limit):
+def get_region_data(files, region, is_read_text, prefix, limit, logger):
     def get_files(region):
         return [filepath for filepath in files
                 if "/{}/".format(region) in filepath]
@@ -149,7 +148,7 @@ def get_region_data(files, region, is_read_text, prefix, limit):
             region_files += get_files(t)
     else:
         region_files = get_files(region)
-    return get_datasets(region_files, is_read_text, prefix=prefix, limit=limit)
+    return get_datasets(region_files, is_read_text, logger, prefix=prefix, limit=limit)
 
 
 def get_model_path(base_dir, region):
