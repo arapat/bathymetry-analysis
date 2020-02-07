@@ -10,7 +10,7 @@ DEBUG = False
 NUM_COLS = 36
 TYPE_INDEX = 35
 REMOVED_FEATURES = [3, 4, 5, 7]
-REMOVED_FEATURES_FROM_BIN = [0, 1]
+REMOVED_FEATURES_FROM_BIN = []
 
 MAX_NUM_EXAMPLES_PER_PICKLE = 1000000
 if DEBUG:
@@ -141,7 +141,8 @@ def get_binary_filename(base_dir, prefix, filename):
         prefix = prefix + '_'
     basename = os.path.basename(filename)
     dirname = os.path.basename(os.path.dirname(filename))
-    prefix = prefix.replace("all", dirname)
+    # TODO: better way to fix this bug
+    prefix = prefix.split("_", 1)[0] + "_" + dirname + "_"
     filename = prefix + dirname + '_' + basename + ".pkl"
     return os.path.join(base_dir, os.path.join(BINARY_DIR, filename))
 

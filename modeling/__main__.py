@@ -11,7 +11,7 @@ from .train_test import run_train_test
 
 
 all_regions = ['AGSO', 'JAMSTEC', 'NGA', 'NGDC', 'NOAA_geodas', 'SIO', 'US_multi']
-train_all = True
+RUN_ALL = True
 usage_msg = "Usage: ./lgb.py <text|bin> <train|test|both> <config_path>"
 
 
@@ -21,11 +21,11 @@ def run_prog(regions, task, test_model=None):
     if task == "train":
         logfile = os.path.join(config["base_dir"], "training_log_{}.log".format(regions[0]))
         logger.set_file_handle(logfile)
-        run_training(config, regions, is_read_text, train_all, logger)
+        run_training(config, regions, is_read_text, RUN_ALL, logger)
     elif task == "test":
         logfile = os.path.join(config["base_dir"], "testing_log_{}.log".format(regions[0]))
         logger.set_file_handle(logfile)
-        run_testing(config, regions, is_read_text, train_all, logger)
+        run_testing(config, regions, is_read_text, RUN_ALL, logger)
     elif task == "cross-test":
         assert(test_model is not None)
         logfile = os.path.join(config["base_dir"], "cross_testing_log_{}.log".format(test_model))
@@ -35,7 +35,7 @@ def run_prog(regions, task, test_model=None):
     else:  # "both"
         logfile = os.path.join(config["base_dir"], "train_test_log_{}.log".format(regions[0]))
         logger.set_file_handle(logfile)
-        run_train_test(config, regions, is_read_text, train_all, logger)
+        run_train_test(config, regions, is_read_text, RUN_ALL, logger)
 
 
 if __name__ == '__main__':
@@ -43,7 +43,7 @@ if __name__ == '__main__':
         print(usage_msg)
         sys.exit(1)
     if sys.argv[1].lower() not in ["text", "bin"] or \
-            sys.argv[2].lower() not in ["train", "test", "both"]:
+            sys.argv[2].lower() not in ["train", "test", "cross-test", "both"]:
         print("Cannot understand the parameters.")
         print(usage_msg)
         sys.exit(1)
@@ -54,7 +54,7 @@ if __name__ == '__main__':
 
     task = sys.argv[2].lower()
     ray.init()
-    if train_all:
+    if RUN_ALL and task != "cross-test":
         result_id = run_prog.remote(all_regions, task)
         ray.get([result_id])
     else:
