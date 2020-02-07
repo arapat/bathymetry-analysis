@@ -14,7 +14,7 @@ TEST_PREFIX = "test"
 LIMIT = None
 
 
-def run_testing(config, regions, is_read_text, test_all, logger, fixed_model=None):
+def run_testing(config, regions, is_read_text, test_all, logger, fixed_model=None, all_data=None):
     base_dir = config["base_dir"]
     logger.log("start testing")
     with open(config["testing_files"]) as f:
@@ -25,7 +25,7 @@ def run_testing(config, regions, is_read_text, test_all, logger, fixed_model=Non
         if fixed_model is not None:
             model_name = fixed_model
         run_testing_per_region(
-            model_name, regions, base_dir, all_testing_files, is_read_text, logger)
+            model_name, regions, base_dir, all_testing_files, is_read_text, logger, all_data)
     else:
         for region in regions:
             model_name = region
@@ -36,11 +36,14 @@ def run_testing(config, regions, is_read_text, test_all, logger, fixed_model=Non
 
 
 def run_testing_per_region(
-        model_region, test_region, base_dir, all_testing_files, is_read_text, logger):
+        model_region, test_region, base_dir, all_testing_files, is_read_text, logger, data=None):
     logger.log("start constructing datasets")
-    (features, labels, weights) = \
-        get_region_data(base_dir, all_testing_files, test_region, is_read_text,
-                "{}_{}".format(TEST_PREFIX, model_region), LIMIT, logger)
+    if data is None:
+        (features, labels, weights) = \
+            get_region_data(base_dir, all_testing_files, test_region, is_read_text,
+                    "{}_{}".format(TEST_PREFIX, model_region), LIMIT, logger)
+    else:
+        (features, labels, weights) = data
     logger.log("finished loading testing data")
     # Start training
     test_region_str = "all"
@@ -74,3 +77,8 @@ def get_scores(region, test_region, features, labels, pkl_model_path, logger):
     logger.log("eval, {}, {}, {}, {}, {}, {}, {}".format(
         region, test_region, model.num_trees(), loss, auprc, auroc, acc))
     return scores
+
+
+def get_all_data(base_dir, all_testing_files, test_region, is_read_text, logger):
+    return get_region_data(base_dir, all_testing_files, test_region, is_read_text,
+            "{}_{}".format(TEST_PREFIX, "all"), LIMIT, logger)

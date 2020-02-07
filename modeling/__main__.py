@@ -6,6 +6,7 @@ import sys
 from .common import Logger
 from .load_data import init_setup
 from .train import run_training
+from .test import get_all_data
 from .test import run_testing
 from .train_test import run_train_test
 
@@ -16,7 +17,7 @@ usage_msg = "Usage: ./lgb.py <text|bin> <train|test|both> <config_path>"
 
 
 @ray.remote
-def run_prog(regions, task, test_model=None):
+def run_prog(regions, task, test_model=None, data=None):
     logger = Logger()
     if task == "train":
         logfile = os.path.join(config["base_dir"], "training_log_{}.log".format(regions[0]))
@@ -30,8 +31,8 @@ def run_prog(regions, task, test_model=None):
         assert(test_model is not None)
         logfile = os.path.join(config["base_dir"], "cross_testing_log_{}.log".format(test_model))
         logger.set_file_handle(logfile)
-        run_testing(config, regions, is_read_text, False, logger, fixed_model=test_model)
-        run_testing(config, regions, is_read_text, True, logger, fixed_model=test_model)
+        run_testing(config, regions, is_read_text, RUN_ALL, logger, fixed_model=test_model,
+                all_data=data)
     else:  # "both"
         logfile = os.path.join(config["base_dir"], "train_test_log_{}.log".format(regions[0]))
         logger.set_file_handle(logfile)
@@ -60,11 +61,25 @@ if __name__ == '__main__':
     else:
         result_ids = []
         if task == "cross-test":
+            data = None
+            if RUN_ALL:
+                logger = Logger()
+                logfile = os.path.join(config["base_dir"], "all-data-loading.log")
+                logger.set_file_handle(logfile)
+                logger.log("start loading all datasets")
+                with open(config["testing_files"]) as f:
+                    all_testing_files = f.readlines()
+                data = get_all_data(config["base_dir"], all_testing_files, all_regions,
+                        is_read_text, logger)
+                logger.log("finished loading all testing data")
             for region in all_regions:
-                result_ids.append(run_prog.remote(all_regions, task, region))
-            result_ids.append(run_prog.remote(all_regions, task, "all"))
+                result_id = run_prog.remote(all_regions, task, region, data)
+                ray.get([result_id])
+            result_id = run_prog.remote(all_regions, task, "all", data)
+            ray.get([result_id])
         else:
             for region in all_regions:
                 result_ids.append(run_prog.remote([region], task))
-        results = ray.get(result_ids)
+        if result_ids:
+            results = ray.get(result_ids)
 
