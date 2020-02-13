@@ -147,16 +147,14 @@ def get_binary_filename(base_dir, prefix, filename):
     return os.path.join(base_dir, os.path.join(BINARY_DIR, filename))
 
 
-def get_region_data(base_dir, files, region, is_read_text, prefix, limit, logger):
+def get_region_data(base_dir, files, regions, is_read_text, prefix, limit, logger):
     def get_files(region):
         return [filepath for filepath in files
                 if "/{}/".format(region) in filepath]
-    if type(region) is list:
-        region_files = []
-        for t in region:
-            region_files += get_files(t)
-    else:
-        region_files = get_files(region)
+    assert(type(regions) is list)
+    region_files = []
+    for t in regions:
+        region_files += get_files(t)
     return get_datasets(base_dir, region_files, is_read_text, logger, prefix=prefix, limit=limit)
 
 

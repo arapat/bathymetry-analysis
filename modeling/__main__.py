@@ -6,80 +6,82 @@ import sys
 from .common import Logger
 from .load_data import init_setup
 from .train import run_training
+from .train import run_training_all
 from .test import get_all_data
 from .test import run_testing
-from .train_test import run_train_test
 
 
-all_regions = ['AGSO', 'JAMSTEC', 'NGA', 'NGDC', 'NOAA_geodas', 'SIO', 'US_multi']
-RUN_ALL = True
-usage_msg = "Usage: ./lgb.py <text|bin> <train|test|both> <config_path>"
+regions = ['AGSO', 'JAMSTEC', 'NGA', 'NGDC', 'NOAA_geodas', 'SIO', 'US_multi']
+param1 = ["text", "bin"]
+param2 = ["train", "train-all", "test-self", "test-cross", "test-all"]
+usage_msg = "Usage: ./lgb.py <{}> <{}> <config_path>".format("|".join(param1), "|".join(param2))
 
 
 @ray.remote
-def run_prog(regions, task, test_model=None, data=None):
+def run_training_one_region(region):
+    logfile = os.path.join(config["base_dir"], "training_log_{}.log".format(region))
+    logger.set_file_handle(logfile)
+    run_training(config, [region], is_read_text, logger)
+
+
+def run_training_all_regions(regions):
+    logfile = os.path.join(config["base_dir"], "training_log_all.log")
+    logger.set_file_handle(logfile)
+    run_training_all(config, regions, is_read_text, logger)
+
+
+@ray.remote
+def run_test(model_name, test_regions, task, data=None):
     logger = Logger()
-    if task == "train":
-        logfile = os.path.join(config["base_dir"], "training_log_{}.log".format(regions[0]))
-        logger.set_file_handle(logfile)
-        run_training(config, regions, is_read_text, RUN_ALL, logger)
-    elif task == "test":
-        logfile = os.path.join(config["base_dir"], "testing_log_{}.log".format(regions[0]))
-        logger.set_file_handle(logfile)
-        run_testing(config, regions, is_read_text, RUN_ALL, logger)
-    elif task == "cross-test":
-        assert(test_model is not None)
-        logfile = os.path.join(config["base_dir"], "cross_testing_log_{}.log".format(test_model))
-        logger.set_file_handle(logfile)
-        run_testing(config, regions, is_read_text, RUN_ALL, logger, fixed_model=test_model,
-                all_data=data)
-    else:  # "both"
-        logfile = os.path.join(config["base_dir"], "train_test_log_{}.log".format(regions[0]))
-        logger.set_file_handle(logfile)
-        run_train_test(config, regions, is_read_text, RUN_ALL, logger)
+    logfile = os.path.join(config["base_dir"], "testing_log_{}.log".format(model_name))
+    logger.set_file_handle(logfile)
+    task = task.split('-')[1]
+    run_testing(config, [model_name], test_regions, is_read_text, task, logger, all_data=data)
+
+
+def get_data():
+    logger = Logger()
+    logfile = os.path.join(config["base_dir"], "all-data-loading.log")
+    logger.set_file_handle(logfile)
+    logger.log("start loading all datasets")
+    with open(config["testing_files"]) as f:
+        all_testing_files = f.readlines()
+    data = get_all_data(config["base_dir"], all_testing_files, regions, is_read_text, logger)
+    logger.log("finished loading all testing data")
+    return data
 
 
 if __name__ == '__main__':
     if len(sys.argv) != 4:
         print(usage_msg)
         sys.exit(1)
-    if sys.argv[1].lower() not in ["text", "bin"] or \
-            sys.argv[2].lower() not in ["train", "test", "cross-test", "both"]:
+    if sys.argv[1].lower() not in param1 or sys.argv[2].lower() not in param2:
         print("Cannot understand the parameters.")
         print(usage_msg)
         sys.exit(1)
-    is_read_text = (sys.argv[1].lower() == "text")
     with open(sys.argv[3]) as f:
         config = json.load(f)
+    is_read_text = (sys.argv[1].lower() == "text")
     init_setup(config["base_dir"])
-
     task = sys.argv[2].lower()
-    ray.init()
-    if RUN_ALL and task != "cross-test":
-        result_id = run_prog.remote(all_regions, task)
-        ray.get([result_id])
-    else:
-        result_ids = []
-        if task == "cross-test":
-            data = None
-            if RUN_ALL:
-                logger = Logger()
-                logfile = os.path.join(config["base_dir"], "all-data-loading.log")
-                logger.set_file_handle(logfile)
-                logger.log("start loading all datasets")
-                with open(config["testing_files"]) as f:
-                    all_testing_files = f.readlines()
-                data = get_all_data(config["base_dir"], all_testing_files, all_regions,
-                        is_read_text, logger)
-                logger.log("finished loading all testing data")
-            for region in all_regions:
-                result_id = run_prog.remote(all_regions, task, region, data)
-                ray.get([result_id])
-            result_id = run_prog.remote(all_regions, task, "all", data)
-            ray.get([result_id])
-        else:
-            for region in all_regions:
-                result_ids.append(run_prog.remote([region], task))
-        if result_ids:
-            results = ray.get(result_ids)
 
+    ray.init()
+    result_ids = []
+    if task == "train":
+        for region in regions:
+            result_ids.append(run_training_one_region.remote(region))
+    elif task == "train-all":
+        run_training_all_regions(regions)
+    elif task == "test-self":
+        for region in regions:
+            result_ids.append(run_test.remote(region, [region], task))
+    elif task == "test-cross":
+        for region in regions:
+            result_ids.append(run_test.remote(region, regions, task))
+    elif task == "test-all":
+        data = get_data()
+        for region in regions:
+            result_ids.append(run_test.remote(region, regions, task, data=data))
+    else:
+        assert(False)
+    results = ray.get(result_ids)
