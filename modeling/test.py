@@ -59,6 +59,6 @@ def run_testing_per_region(
     logger.log("finished testing")
 
 
-def get_all_data(base_dir, all_testing_files, test_regions, is_read_text, logger):
-    return get_region_data(base_dir, all_testing_files, test_regions, is_read_text,
+def get_all_data(base_dir, all_files, test_regions, is_read_text, logger):
+    return get_region_data(base_dir, all_files, test_regions, is_read_text,
             "{}_{}".format(TEST_PREFIX, "all"), LIMIT, logger)

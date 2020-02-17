@@ -19,12 +19,14 @@ usage_msg = "Usage: ./lgb.py <{}> <{}> <config_path>".format("|".join(param1), "
 
 @ray.remote
 def run_training_one_region(region):
+    logger = Logger()
     logfile = os.path.join(config["base_dir"], "training_log_{}.log".format(region))
     logger.set_file_handle(logfile)
     run_training(config, [region], is_read_text, logger)
 
 
 def run_training_all_regions(regions):
+    logger = Logger()
     logfile = os.path.join(config["base_dir"], "training_log_all.log")
     logger.set_file_handle(logfile)
     run_training_all(config, regions, is_read_text, logger)
