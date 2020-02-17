@@ -4,16 +4,16 @@ import pickle
 import sys
 
 from ..common import Logger
-from ..modeling.load_data import get_region_data
-from ..modeling.test import TEST_PREFIX
-from ..modeling.train import TRAIN_PREFIX
+from ..load_data import get_region_data
+from ..test import TEST_PREFIX
+from ..train import TRAIN_PREFIX
 
 
 regions = ['AGSO', 'JAMSTEC', 'NGA', 'NGDC', 'NOAA_geodas', 'SIO', 'US_multi']
 
 
 def get_all_data(base_dir, all_files, region, logger):
-    is_read_text = True
+    is_read_text = False
     (features1, labels1, weights1) = get_region_data(base_dir, all_files, [region], is_read_text,
             "{}_{}".format(TRAIN_PREFIX, region), None, logger)
     (features2, labels2, weights2) = get_region_data(base_dir, all_files, [region], is_read_text,
@@ -24,8 +24,10 @@ def get_all_data(base_dir, all_files, region, logger):
     return (features, labels, weights)
 
 
-def shuffle_and_save(features, labels, weights, region: str):
-    order = np.random.shuffle(np.arange(features.shape[0], dtype=int))
+def shuffle_and_save(features, labels, weights, region):
+    assert(type(region) is str)
+    order = np.arange(features.shape[0], dtype=int)
+    np.random.shuffle(order)
     k = int(features.shape[0] * 0.8)
     with open("training-instances_{}.pkl".format(region), 'wb') as f:
         pickle.dump((features[order[:k]], labels[order[:k]], weights[order[:k]]), f, protocol=4)

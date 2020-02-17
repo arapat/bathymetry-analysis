@@ -1,5 +1,5 @@
 {
-    "base_dir": "./test-all/",
+    "base_dir": "./logs/by-instances/",
     "training_files": "/geosat2/julaiti/new_features_1130/training_files_desc.txt",
     "validation_files": "/geosat2/julaiti/new_features_1130/validation_files_desc.txt",
     "testing_files": "/geosat2/julaiti/new_features_1130/testing_files_desc.txt",
