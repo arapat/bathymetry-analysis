@@ -7,13 +7,14 @@ from .common import Logger
 from .load_data import init_setup
 from .train import run_training
 from .train import run_training_all
+from .train import run_training_specific_file
 from .test import get_all_data
 from .test import run_testing
 
 
 regions = ['AGSO', 'JAMSTEC', 'NGA', 'NGDC', 'NOAA_geodas', 'SIO', 'US_multi']
 param1 = ["text", "bin"]
-param2 = ["train", "train-all", "test-self", "test-cross", "test-all"]
+param2 = ["train", "train-all", "test-self", "test-cross", "test-all", "train-instances"]
 usage_msg = "Usage: ./lgb.py <{}> <{}> <config_path>".format("|".join(param1), "|".join(param2))
 
 
@@ -39,6 +40,18 @@ def run_test(model_name, test_regions, task, data=None):
     logger.set_file_handle(logfile)
     task = task.split('-')[1]
     run_testing(config, [model_name], test_regions, is_read_text, task, logger, all_data=data)
+
+
+@ray.remote
+def run_training_instances(regions, region_name):
+    DATA_DIR = "data_pkl"
+    logger = Logger()
+    logfile = os.path.join(config["base_dir"], "training_inst_log_{}.log".format(region_name))
+    logger.set_file_handle(logfile)
+    dirname = os.path.join(config["base_dir"], DATA_DIR)
+    filenames = [
+        os.path.join(dirname, "training-instances_{}.pkl".format(region)) for region in regions]
+    run_training_specific_file(filenames, region_name, config, logger)
 
 
 def get_data():
@@ -84,6 +97,10 @@ if __name__ == '__main__':
         data = get_data()
         for region in regions:
             result_ids.append(run_test.remote(region, regions, task, data=data))
+    elif task == "train-instances":
+        for region in regions:
+            result_ids.append(run_training_instances.remote([region], region))
+        result_ids.append(run_training_instances.remote(regions, "all"))
     else:
         assert(False)
     results = ray.get(result_ids)

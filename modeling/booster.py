@@ -6,11 +6,14 @@ def train(config, train_dataset, valid_dataset, region, logger):
     logger.log("start training...")
     # Strange bug exists that prevents saving all iterations if `early_stopping_rounds` is enabled
     config["early_stopping_rounds"] = None
+    valid_sets = [train_dataset]
+    if valid_dataset is not None:
+        valid_sets.append(valid_dataset)
     gbm = lgb.train(
         config,
         train_dataset,
         num_boost_round=config["rounds"],
-        valid_sets=[train_dataset, valid_dataset],
+        valid_sets=valid_sets,
         callbacks=[print_ts(logger)],
         # early_stopping_rounds=config["early_stopping_rounds"],
         # fobj=expobj, feval=exp_eval,
