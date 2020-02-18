@@ -9,6 +9,7 @@ from .booster import get_scores
 from .load_data import get_region_data
 from .load_data import get_model_path
 from .load_data import persist_predictions
+from .tools.split_by_instances import load_examples_from_pickle
 
 
 TEST_PREFIX = "test"
@@ -62,3 +63,14 @@ def run_testing_per_region(
 def get_all_data(base_dir, all_files, test_regions, is_read_text, logger):
     return get_region_data(base_dir, all_files, test_regions, is_read_text,
             "{}_{}".format(TEST_PREFIX, "all"), LIMIT, logger)
+
+
+# Specify a data file
+def run_testing_specific_file(model_name, test_filenames, test_region_name, config, logger):
+    logger.log("start loading datasets")
+    features, labels, weights = load_examples_from_pickle(test_filenames)
+    logger.log("finished loading testing data")
+    model_path = get_model_path(config["base_dir"], model_name)
+    scores = get_scores(model_name, test_region_name, features, labels, model_path, logger)
+    persist_predictions(
+        config["base_dir"], model_name, test_region_name, features, labels, scores, weights)

@@ -10,11 +10,13 @@ from .train import run_training_all
 from .train import run_training_specific_file
 from .test import get_all_data
 from .test import run_testing
+from .test import run_testing_specific_file
 
 
 regions = ['AGSO', 'JAMSTEC', 'NGA', 'NGDC', 'NOAA_geodas', 'SIO', 'US_multi']
 param1 = ["text", "bin"]
-param2 = ["train", "train-all", "test-self", "test-cross", "test-all", "train-instances"]
+param2 = ["train", "train-all", "test-self", "test-cross", "test-all",
+          "train-instances, test-instances"]
 usage_msg = "Usage: ./lgb.py <{}> <{}> <config_path>".format("|".join(param1), "|".join(param2))
 
 
@@ -52,6 +54,20 @@ def run_training_instances(regions, region_name):
     filenames = [
         os.path.join(dirname, "training-instances_{}.pkl".format(region)) for region in regions]
     run_training_specific_file(filenames, region_name, config, logger)
+
+
+@ray.remote
+def run_testing_instances(model_name, regions):
+    DATA_DIR = "data_pkl"
+    logger = Logger()
+    logfile = os.path.join(config["base_dir"], "testing_inst_log_{}.log".format(model_name))
+    logger.set_file_handle(logfile)
+    dirname = os.path.join(config["base_dir"], DATA_DIR)
+    filenames = [
+        os.path.join(dirname, "testing-instances_{}.pkl".format(region)) for region in regions]
+    for test_region_name, filename in zip(regions, filenames):
+        run_testing_specific_file(model_name, [filename], test_region_name, config, logger)
+    run_testing_specific_file(model_name, filenames, "all", config, logger)
 
 
 def get_data():
@@ -101,6 +117,10 @@ if __name__ == '__main__':
         for region in regions:
             result_ids.append(run_training_instances.remote([region], region))
         result_ids.append(run_training_instances.remote(regions, "all"))
+    elif task == "test-instances":
+        for region in regions:
+            result_ids.append(run_testing_instances.remote(region, regions))
+        result_ids.append(run_testing_instances.remote("all", regions))
     else:
         assert(False)
     results = ray.get(result_ids)
