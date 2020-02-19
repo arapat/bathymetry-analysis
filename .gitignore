@@ -14,3 +14,6 @@ commons/export
 archive/
 *.tsv*
 logs/
+
+.*
+*~

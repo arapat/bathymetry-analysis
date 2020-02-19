@@ -5,8 +5,9 @@ import sys
 
 from ..common import Logger
 from ..load_data import get_region_data
-from ..test import TEST_PREFIX
-from ..train import TRAIN_PREFIX
+
+TEST_PREFIX = "test"
+TRAIN_PREFIX = "train"
 
 
 regions = ['AGSO', 'JAMSTEC', 'NGA', 'NGDC', 'NOAA_geodas', 'SIO', 'US_multi']
@@ -41,7 +42,7 @@ def load_examples_from_pickle(pickle_files):
     weights = []
     for filename in pickle_files:
         with open(filename, "rb") as f:
-            _1, _2, _3 = pickle.load(f, protocol=4)
+            _1, _2, _3 = pickle.load(f)
             features.append(_1)
             labels.append(_2)
             weights.append(_3)

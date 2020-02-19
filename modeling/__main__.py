@@ -16,7 +16,7 @@ from .test import run_testing_specific_file
 regions = ['AGSO', 'JAMSTEC', 'NGA', 'NGDC', 'NOAA_geodas', 'SIO', 'US_multi']
 param1 = ["text", "bin"]
 param2 = ["train", "train-all", "test-self", "test-cross", "test-all",
-          "train-instances, test-instances"]
+          "train-instances", "test-instances"]
 usage_msg = "Usage: ./lgb.py <{}> <{}> <config_path>".format("|".join(param1), "|".join(param2))
 
 
