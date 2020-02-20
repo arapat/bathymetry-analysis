@@ -1,4 +1,5 @@
 import sys
+import pickle
 import numpy as np
 
 
@@ -11,7 +12,7 @@ def get_recall_fixed_fpr(model_name, region_name, filename, fpr):
     total_neg = neg_scores.shape[0]
     pos_rate = 1.0 * total_pos / (total_pos + total_neg)
     for rho in fpr:
-        k = rho * len(neg_scores)
+        k = int(rho * len(neg_scores))
         while k + 1 < len(neg_scores) and neg_scores[k] - neg_scores[k + 1] < 1e-8:
             k += 1
         recall = np.sum(pos_scores >= neg_scores[k])
