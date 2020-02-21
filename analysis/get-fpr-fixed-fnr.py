@@ -3,6 +3,8 @@ import pickle
 import numpy as np
 
 
+# Positive and negative is swapped in this script
+
 def get_recall_fixed_fpr(model_name, region_name, filename, fpr):
     with open(filename, "rb") as f:
         _, labels, scores, _ = pickle.load(f)
@@ -15,8 +17,9 @@ def get_recall_fixed_fpr(model_name, region_name, filename, fpr):
         k = int(rho * len(neg_scores))
         while k + 1 < len(neg_scores) and neg_scores[k] - neg_scores[k + 1] < 1e-8:
             k += 1
-        recall = np.sum(pos_scores >= neg_scores[k])
+        recall = np.sum(pos_scores > neg_scores[k])  # used to be >= may effect result
         rate = 1.0 * recall / total_pos
+        rate = 1.0 - rate
         print("{} {} {} {} {} {} {}".format(
             model_name, region_name, total_pos, total_neg, pos_rate, rho, rate))
 
