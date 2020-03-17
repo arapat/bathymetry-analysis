@@ -41,8 +41,7 @@ def get_args(desc, model_req, result_req=False):
     scores_filepath = args.scores
     models_filepath = args.model
     result_filepath = args.result
-    for req, filepath in [
-            (True, scores_filepath), (model_req, models_filepath), (result_req, result_filepath)]:
+    for req, filepath in [(True, scores_filepath), (model_req, models_filepath)]:
         if req and not os.path.exists(filepath):
             print("{} does not exist.".format(filepath))
             sys.exit(1)
