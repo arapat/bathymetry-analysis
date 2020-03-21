@@ -37,7 +37,9 @@ def init_setup(base_dir):
             os.mkdir(dir_path)
 
 
-def read_data_from_text(filename, get_label=lambda cols: cols[4] == '9999'):
+# cols[4] == 9999, the instance is corrupted, set label to 0
+# otherwise, the instance is good, set the label to 1
+def read_data_from_text(filename, get_label=lambda cols: cols[4] != '9999'):
     features = []
     labels = []
     filename = filename.strip()
@@ -75,13 +77,11 @@ def write_data_to_binary(base_dir, st, features, labels, weights, filename, pref
         f.write(filename.strip() + '\n')
 
 
-def get_datasets(base_dir, filepaths, is_read_text, logger, prefix="", limit=None):
+def get_datasets(base_dir, filepaths, is_read_text, prefix, logger):
     data_features = []
     data_labels = []
     data_weights = []
     last_written_length = 0
-    inventory = load_inventory(base_dir, is_read_text, prefix)
-    start_time = time()
     for filename in filepaths:
         filename = filename.strip()
         bin_filename = get_binary_filename(base_dir, prefix, filename)
@@ -92,13 +92,12 @@ def get_datasets(base_dir, filepaths, is_read_text, logger, prefix="", limit=Non
                 features, labels, weights, incorrect_cols = read_data_from_text(filename)
             else:
                 features, labels, weights, incorrect_cols = read_data_from_binary(filename)
-            logger.log("loaded, {}, incorrect cols, {}, size, {}, dim, {}".format(
-                filename, incorrect_cols, len(features), features[0].shape[0]))
+            logger.log("loaded, {}, incorrect cols, {}, corrupt, {}, size, {}, dim, {}".format(
+                filename, incorrect_cols, np.sum(labels), len(features), features[0].shape[0]))
         except Exception as err:
             # Print error message only if we are supposed to read this file
-            if is_read_text or filename in inventory:
-                logger.log("Failed to load {}, is_read_text, {}, Error, {}".format(
-                    filename, is_read_text, err))
+            logger.log("Failed to load {}, is_read_text, {}, Error, {}".format(
+                filename, is_read_text, err))
             continue
 
         data_features  += features
@@ -106,22 +105,13 @@ def get_datasets(base_dir, filepaths, is_read_text, logger, prefix="", limit=Non
         data_weights   += weights
 
         curr_num_examples = len(data_features)
-        if is_read_text and curr_num_examples - last_written_length >= MAX_NUM_EXAMPLES_PER_PICKLE:
+        if is_read_text:  # and curr_num_examples - last_written_length >= MAX_NUM_EXAMPLES_PER_PICKLE:
             logger.log("To write {} examples".format(curr_num_examples - last_written_length))
             write_data_to_binary(
                 base_dir, last_written_length, data_features, data_labels, data_weights,
                 bin_filename, prefix)
             last_written_length = curr_num_examples
-        if limit is not None and curr_num_examples > limit or DEBUG and time() - start_time > 5:
-            break
 
-    # Handle last batch
-    curr_num_examples = len(data_features)
-    if is_read_text and curr_num_examples > last_written_length:
-        logger.log("To write {} examples".format(curr_num_examples - last_written_length))
-        write_data_to_binary(
-            base_dir, last_written_length, data_features, data_labels, data_weights, bin_filename,
-            prefix)
     # Format labels and weights
     data_features = np.array(data_features)
     data_labels   = (np.array(data_labels) > 0).astype(np.int8)
@@ -137,17 +127,15 @@ def get_datasets(base_dir, filepaths, is_read_text, logger, prefix="", limit=Non
 
 
 def get_binary_filename(base_dir, prefix, filename):
-    if prefix and not prefix.endswith('_'):
-        prefix = prefix + '_'
+    while prefix and prefix.endswith('_'):
+        prefix = prefix[:-1]
     basename = os.path.basename(filename)
     dirname = os.path.basename(os.path.dirname(filename))
-    # TODO: better way to fix this bug
-    prefix = prefix.split("_", 1)[0] + "_" + dirname + "_"
-    filename = prefix + dirname + '_' + basename + ".pkl"
+    filename = prefix + '_' + dirname + '_' + basename + ".pkl"
     return os.path.join(base_dir, os.path.join(BINARY_DIR, filename))
 
 
-def get_region_data(base_dir, files, regions, is_read_text, prefix, limit, logger):
+def get_region_data(base_dir, files, regions, is_read_text, prefix, logger):
     def get_files(region):
         return [filepath for filepath in files
                 if "/{}/".format(region) in filepath]
@@ -155,7 +143,7 @@ def get_region_data(base_dir, files, regions, is_read_text, prefix, limit, logge
     region_files = []
     for t in regions:
         region_files += get_files(t)
-    return get_datasets(base_dir, region_files, is_read_text, logger, prefix=prefix, limit=limit)
+    return get_datasets(base_dir, region_files, is_read_text, prefix, logger)
 
 
 def get_model_path(base_dir, region):
@@ -181,7 +169,7 @@ def persist_model(base_dir, region, gbm):
     gbm.save_model(txt_model_path)
 
 
-def load_inventory(base_dir, is_read_text, prefix):
+def _load_inventory(base_dir, is_read_text, prefix):
     if is_read_text:
         filename = os.path.join(base_dir, INVENTORY.format(prefix))
         f = open(filename, 'w')

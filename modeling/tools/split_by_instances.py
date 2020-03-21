@@ -16,9 +16,9 @@ regions = ['AGSO', 'JAMSTEC', 'NGA', 'NGDC', 'NOAA_geodas', 'SIO', 'US_multi']
 def get_all_data(base_dir, all_files, region, logger):
     is_read_text = False
     (features1, labels1, weights1) = get_region_data(base_dir, all_files, [region], is_read_text,
-            "{}_{}".format(TRAIN_PREFIX, region), None, logger)
+            TRAIN_PREFIX, logger)
     (features2, labels2, weights2) = get_region_data(base_dir, all_files, [region], is_read_text,
-            "{}_{}".format(TEST_PREFIX, region), None, logger)
+            TEST_PREFIX, logger)
     features = np.concatenate([features1, features2], axis=0)
     labels = np.concatenate([labels1, labels2], axis=0)
     weights = np.concatenate([weights1, weights2], axis=0)

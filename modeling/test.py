@@ -49,7 +49,7 @@ def run_testing_per_region(
     if data is None:
         (features, labels, weights) = \
             get_region_data(base_dir, all_testing_files, test_regions, is_read_text,
-                    "{}_{}".format(TEST_PREFIX, model_region), LIMIT, logger)
+                    TEST_PREFIX, logger)
     else:
         (features, labels, weights) = data
     logger.log("finished loading testing data")
@@ -61,8 +61,7 @@ def run_testing_per_region(
 
 
 def get_all_data(base_dir, all_files, test_regions, is_read_text, logger):
-    return get_region_data(base_dir, all_files, test_regions, is_read_text,
-            "{}_{}".format(TEST_PREFIX, "all"), LIMIT, logger)
+    return get_region_data(base_dir, all_files, test_regions, is_read_text, TEST_PREFIX, logger)
 
 
 # Specify a data file
