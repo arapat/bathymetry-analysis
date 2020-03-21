@@ -16,34 +16,36 @@ class Calibration:
         getattr(self, args.task)()
 
     def train(self):
-        scores_file, model_file = get_args("train a calibration model")
+        scores_file, model_file, result_file = get_args("train a calibration model", False)
         scores, labels = parse_scores(scores_file)
         lr = LogisticRegression()
         lr.fit(scores, labels)
         dump(lr, model_file)
 
     def test(self):
-        scores_file, model_file = get_args("get the calibrated probability from the boosting scores")
-        scores, _ = parse_scores(scores_file)
+        scores_file, model_file, result_file = get_args(
+                "get the calibrated probability from the boosting scores", True, True)
+        scores, labels = parse_scores(scores_file)
         lr = load(model_file)
         proba = lr.predict_proba(scores)
-        with open(scores_file + "_proba", "wb") as f:
-            pickle.dump(proba, f)
+        with open(result_file, "wb") as f:
+            pickle.dump((proba, scores, labels), f)
 
 
-
-def get_args(desc):
+def get_args(desc, model_req, result_req=False):
     parser = argparse.ArgumentParser(description=desc)
-    parser.add_argument("--scores", help="the file path to the scores file")
-    parser.add_argument("--model", help="the file path to the model file")
+    parser.add_argument("--scores", required=True, help="the file path to the scores file")
+    parser.add_argument("--model", required=True, help="the file path to the model file")
+    parser.add_argument("--result", required=result_req, help="the file path to write the calibrated scores")
     args = parser.parse_args(sys.argv[2:])
     scores_filepath = args.scores
     models_filepath = args.model
-    for filepath in [scores_filepath, models_filepath]:
-        if os.path.exists(filepath):
+    result_filepath = args.result
+    for req, filepath in [(True, scores_filepath), (model_req, models_filepath)]:
+        if req and not os.path.exists(filepath):
             print("{} does not exist.".format(filepath))
             sys.exit(1)
-    return scores_filepath, models_filepath
+    return scores_filepath, models_filepath, result_filepath
 
 
 def parse_scores(filename):
@@ -51,6 +53,10 @@ def parse_scores(filename):
         _, labels, scores, _ = pickle.load(f)
     pos_scores = 1.0 - scores[labels == 0]
     neg_scores = 1.0 - scores[labels == 1]
-    scores = np.concatenate([pos_scores, neg_scores])
+    scores = np.concatenate([pos_scores, neg_scores]).reshape(-1, 1)
     labels = np.concatenate([np.ones_like(pos_scores), np.zeros_like(neg_scores)])
     return (scores, labels)
+
+
+if __name__ == "__main__":
+    Calibration()
