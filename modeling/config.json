@@ -1,8 +1,8 @@
 {
-    "base_dir": "./logs/by-instances/",
-    "training_files": "/geosat2/julaiti/new_features_1130/training_files_desc.txt",
-    "validation_files": "/geosat2/julaiti/new_features_1130/validation_files_desc.txt",
-    "testing_files": "/geosat2/julaiti/new_features_1130/testing_files_desc.txt",
+    "base_dir": "./train-logs",
+    "training_files": "/Users/igpp-jalafate/t/all-train.txt",
+    "validation_files": "/Users/igpp-jalafate/t/all-validate.txt",
+    "testing_files": "/Users/igpp-jalafate/t/all-test.txt",
     "rounds": 1000,
     "early_stopping_rounds": 200,
 

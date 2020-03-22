@@ -96,16 +96,13 @@ if __name__ == '__main__':
     init_setup(config["base_dir"])
     task = sys.argv[2].lower()
 
-    ray.init()
+    ray.init(num_cpus=10)
     result_ids = []
     if task == "train":
         for region in regions:
             result_ids.append(run_training_one_region.remote(region))
     elif task == "train-all":
         run_training_all_regions(regions)
-    elif task == "test-self":
-        for region in regions:
-            result_ids.append(run_test.remote(region, [region], task))
     elif task == "test-cross":
         for region in regions:
             result_ids.append(run_test.remote(region, regions, task))
@@ -121,6 +118,9 @@ if __name__ == '__main__':
         for region in regions:
             result_ids.append(run_testing_instances.remote(region, regions))
         result_ids.append(run_testing_instances.remote("all", regions))
+    # elif task == "test-self":
+    #     for region in regions:
+    #         result_ids.append(run_test.remote(region, [region], task))
     else:
         assert(False)
     results = ray.get(result_ids)

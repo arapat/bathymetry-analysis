@@ -20,5 +20,5 @@ for region in regions:
     tests, validates, trains = filenames[:s0], filenames[s0:s1], filenames[s1:]
     for name, dataset in [("test", tests), ("validate", validates), ("train", trains)]:
         with open("{}-{}.txt".format(region, name), "w") as f:
-            f.write("\n".join(filenames))
+            f.write("\n".join(dataset))
 

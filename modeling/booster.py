@@ -14,15 +14,20 @@ def train(config, train_dataset, valid_dataset, region, logger):
     valid_sets = [train_dataset]
     if valid_dataset is not None:
         valid_sets.append(valid_dataset)
-    gbm = lgb.train(
-        config,
-        train_dataset,
-        num_boost_round=config["rounds"],
-        valid_sets=valid_sets,
-        callbacks=[print_ts(logger)],
-        # early_stopping_rounds=config["early_stopping_rounds"],
-        # fobj=expobj, feval=exp_eval,
-    )
+    try:
+        gbm = lgb.train(
+            config,
+            train_dataset,
+            num_boost_round=config["rounds"],
+            valid_sets=valid_sets,
+            callbacks=[print_ts(logger)],
+            # early_stopping_rounds=config["early_stopping_rounds"],
+            # fobj=expobj, feval=exp_eval,
+        )
+    except:
+        logger.log("Failed to train, {}, {}, {}".format(
+            region, train_dataset.num_data(), train_dataset.num_feature()))
+        return
     logger.log("training completed.")
     persist_model(config["base_dir"], region, gbm)
     logger.log("Model for {} is persisted".format(region))
