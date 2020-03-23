@@ -27,6 +27,7 @@ data_type = {
     "S": 3,  # - single beam
     "P": 4,  # - point measurement
     "X": np.nan,
+    'nan': np.nan,
 }
 
 

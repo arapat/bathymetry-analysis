@@ -25,8 +25,7 @@ def train(config, train_dataset, valid_dataset, region, logger):
             # fobj=expobj, feval=exp_eval,
         )
     except:
-        logger.log("Failed to train, {}, {}, {}".format(
-            region, train_dataset.num_data(), train_dataset.num_feature()))
+        logger.log("Failed to train, {}".format(region))
         return
     logger.log("training completed.")
     persist_model(config["base_dir"], region, gbm)
