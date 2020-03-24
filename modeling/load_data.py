@@ -30,6 +30,18 @@ data_type = {
     'nan': np.nan,
 }
 
+inst_weights = {
+    'AGSO': 13760454.0,
+    'JAMSTEC': 64869049.0,
+    'JAMSTEC2': 4467504.0,
+    'NGA': 3521481.0,
+    'NGA2': 7060849.0,
+    'NGDC': 86229443.0,
+    'NOAA_geodas': 28041621.0,
+    'SIO': 30369189.0,
+    'US_multi': 35984658.0,
+}
+
 
 def init_setup(base_dir):
     for dirname in [BINARY_DIR, MODEL_DIR, SCORES_DIR]:
@@ -73,8 +85,8 @@ def read_data_from_binary(filename):
 def write_data_to_binary(base_dir, st, features, labels, weights, filename, prefix):
     with open(filename, 'wb') as f:
         pickle.dump((features[st:], labels[st:], weights[st:]), f, protocol=4)
-    filename = os.path.join(base_dir, INVENTORY.format(prefix))
-    with open(filename, 'a') as f:
+    inv_filename = os.path.join(base_dir, INVENTORY.format(prefix))
+    with open(inv_filename, 'a') as f:
         f.write(filename.strip() + '\n')
 
 
@@ -101,6 +113,12 @@ def get_datasets(base_dir, filepaths, is_read_text, prefix, logger):
                 filename, is_read_text, err))
             continue
 
+        region_name = None
+        for t in inst_weights:
+            if t in filename:
+                region_name = t
+                break
+        weights = np.ones_like(weights) / inst_weights[region_name]
         data_features  += features
         data_labels    += labels
         data_weights   += weights
