@@ -1,7 +1,7 @@
 import sys
 
-num_rows = 7
-num_cols = 8
+num_rows = 9
+num_cols = 9
 
 with open(sys.argv[1]) as f:
     for row in range(num_rows):

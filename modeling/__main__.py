@@ -13,7 +13,7 @@ from .test import run_testing
 from .test import run_testing_specific_file
 
 
-regions = ['AGSO', 'JAMSTEC', 'NGA', 'NGDC', 'NOAA_geodas', 'SIO', 'US_multi']
+regions = ['AGSO', 'JAMSTEC', 'NGA', 'NGDC', 'NOAA_geodas', 'SIO', 'US_multi'] + ['JAMSTEC2', 'NGA2']
 param1 = ["text", "bin"]
 param2 = ["train", "train-all", "test-self", "test-cross", "test-all",
           "train-instances", "test-instances"]
