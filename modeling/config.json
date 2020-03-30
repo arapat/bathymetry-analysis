@@ -1,7 +1,7 @@
 {
-    "base_dir": "./train-logs",
-    "training_files": "/Users/igpp-jalafate/t/all2-train.txt",
-    "validation_files": "/Users/igpp-jalafate/t/all2-validate.txt",
+    "base_dir": "./train-all-logs",
+    "training_files": "/Users/igpp-jalafate/t/all-train.txt",
+    "validation_files": "/Users/igpp-jalafate/t/all-validate.txt",
     "testing_files": "/Users/igpp-jalafate/t/all12-test.txt",
     "rounds": 1000,
     "early_stopping_rounds": 200,

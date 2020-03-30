@@ -121,7 +121,7 @@ def get_datasets(base_dir, filepaths, is_read_text, prefix, logger):
         weights = np.ones_like(weights) / inst_weights[region_name]
         data_features  += features
         data_labels    += labels
-        data_weights   += weights
+        data_weights   += weights.tolist()
 
         curr_num_examples = len(data_features)
         if is_read_text:  # and curr_num_examples - last_written_length >= MAX_NUM_EXAMPLES_PER_PICKLE:

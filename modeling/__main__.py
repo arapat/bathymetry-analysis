@@ -13,7 +13,7 @@ from .test import run_testing
 from .test import run_testing_specific_file
 
 
-regions = ['AGSO', 'JAMSTEC', 'NGA', 'NGDC', 'NOAA_geodas', 'SIO', 'US_multi'] + ['JAMSTEC2', 'NGA2']
+regions = ['AGSO', 'JAMSTEC', 'JAMSTEC2', 'NGA', 'NGA2', 'NGDC', 'NOAA_geodas', 'SIO', 'US_multi']
 param1 = ["text", "bin"]
 param2 = ["train", "train-all", "test-self", "test-cross", "test-all",
           "train-instances", "test-instances"]
@@ -107,9 +107,12 @@ if __name__ == '__main__':
         for region in regions:
             result_ids.append(run_test.remote(region, regions, task))
     elif task == "test-all":
-        data = get_data()
+        result_ids = []
         for region in regions:
-            result_ids.append(run_test.remote(region, regions, task, data=data))
+            result_ids.append(run_test.remote("all", regions, "test-cross"))
+            if len(result_ids) >= 3:
+                results = ray.get(result_ids)
+                result_ids = []
     elif task == "train-instances":
         for region in regions:
             result_ids.append(run_training_instances.remote([region], region))
