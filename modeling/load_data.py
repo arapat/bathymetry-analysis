@@ -146,6 +146,8 @@ def get_datasets(base_dir, filepaths, is_read_text, prefix, logger):
 
 
 def get_binary_filename(base_dir, prefix, filename):
+    if filename.endswith(".pkl"):
+        return filename
     while prefix and prefix.endswith('_'):
         prefix = prefix[:-1]
     basename = os.path.basename(filename)
