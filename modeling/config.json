@@ -1,11 +1,10 @@
 {
-    "base_dir": "./train-all-logs",
-    "training_files": "/Users/igpp-jalafate/t/all-train.txt",
-    "validation_files": "/Users/igpp-jalafate/t/all-validate.txt",
-    "testing_files": "/Users/igpp-jalafate/t/all12-test.txt",
+    "base_dir": "./chulk-logs",
+    "training_files": "/Users/igpp-jalafate/bathymetry-traintest-split/train.txt",
+    "validation_files": "/Users/igpp-jalafate/bathymetry-traintest-split/valid.txt",
+    "testing_files": "/Users/igpp-jalafate/bathymetry-traintest-split/test.txt",
     "rounds": 1000,
     "early_stopping_rounds": 200,
-
     "objective": "binary",
     "boosting_type": "gbdt",
     "learning_rate": 0.01,
