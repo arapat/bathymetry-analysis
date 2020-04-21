@@ -107,12 +107,7 @@ if __name__ == '__main__':
         for region in regions:
             result_ids.append(run_test.remote(region, regions, task))
     elif task == "test-all":
-        result_ids = []
-        for region in regions:
-            result_ids.append(run_test.remote("all", regions, "test-cross"))
-            if len(result_ids) >= 3:
-                results = ray.get(result_ids)
-                result_ids = []
+        result_ids.append(run_test.remote("all", regions, "test-cross"))
     elif task == "train-instances":
         for region in regions:
             result_ids.append(run_training_instances.remote([region], region))
@@ -121,9 +116,9 @@ if __name__ == '__main__':
         for region in regions:
             result_ids.append(run_testing_instances.remote(region, regions))
         result_ids.append(run_testing_instances.remote("all", regions))
-    # elif task == "test-self":
-    #     for region in regions:
-    #         result_ids.append(run_test.remote(region, [region], task))
+    elif task == "test-self":
+        for region in regions:
+            result_ids.append(run_test.remote(region, [region], task))
     else:
         assert(False)
     results = ray.get(result_ids)
