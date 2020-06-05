@@ -90,10 +90,11 @@ def write_data_to_binary(base_dir, st, features, labels, weights, filename, pref
         f.write(filename.strip() + '\n')
 
 
-def get_datasets(base_dir, filepaths, is_read_text, prefix, logger):
+def get_datasets(region_str, base_dir, filepaths, is_read_text, prefix, logger):
     data_features = []
     data_labels = []
     data_weights = []
+    source_filename = []
     last_written_length = 0
     for filename in filepaths:
         filename = filename.strip()
@@ -122,6 +123,7 @@ def get_datasets(base_dir, filepaths, is_read_text, prefix, logger):
         data_features  += features
         data_labels    += labels
         data_weights   += weights.tolist()
+        source_filename += [filename] * len(features)
 
         curr_num_examples = len(data_features)
         if is_read_text:  # and curr_num_examples - last_written_length >= MAX_NUM_EXAMPLES_PER_PICKLE:
@@ -135,6 +137,8 @@ def get_datasets(base_dir, filepaths, is_read_text, prefix, logger):
     data_features = np.array(data_features)
     data_labels   = (np.array(data_labels) > 0).astype(np.int8)
     data_weights  = np.array(data_weights)
+    with open("sources-{}.txt".format(region_str), "w") as f:
+        f.write("\n".join(source_filename))
     # Remove unwanted features when reading from the binary form
     if not is_read_text:
         mask = np.ones(shape=data_features.shape[1]).astype(bool)
@@ -164,7 +168,7 @@ def get_region_data(base_dir, files, regions, is_read_text, prefix, logger):
     region_files = []
     for t in regions:
         region_files += get_files(t)
-    return get_datasets(base_dir, region_files, is_read_text, prefix, logger)
+    return get_datasets(regions[0], base_dir, region_files, is_read_text, prefix, logger)
 
 
 def get_model_path(base_dir, region):
