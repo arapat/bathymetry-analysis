@@ -1,0 +1,19 @@
+{
+    "base_dir": "./chunk-logs-valid",
+    "training_files": "/Users/igpp-jalafate/bathymetry-traintest-split/train.txt",
+    "validation_files": "/Users/igpp-jalafate/bathymetry-traintest-split/valid.txt",
+    "testing_files": "/Users/igpp-jalafate/bathymetry-traintest-split/valid.txt",
+    "rounds": 1000,
+    "early_stopping_rounds": 200,
+    "objective": "binary",
+    "boosting_type": "gbdt",
+    "learning_rate": 0.01,
+    "tree_learner": "serial",
+    "task": "train",
+    "num_thread": 12,
+    "min_data_in_leaf": 5000,
+    "two_round": true,
+    "is_unbalance": true,
+    "num_leaves": 31,
+    "max_bin": 255
+}
