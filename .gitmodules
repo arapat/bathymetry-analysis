@@ -1,0 +1,3 @@
+[submodule "bathymetry"]
+	path = bathymetry
+	url = git@github.com:arapat/bathymetry.git
